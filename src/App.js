@@ -305,7 +305,7 @@ function App() {
             onViewAllInvoices={() => setCurrentView('management')}
           />
         ) : currentView === 'createInvoice' ? (
-          <InvoiceForm addInvoice={addInvoice} invoices={invoices} />
+          <InvoiceForm addInvoice={addInvoice} invoices={invoices} currentUser={currentUser} />
         ) : currentView === 'management' ? (
           <InvoiceManagement 
             invoices={invoices}

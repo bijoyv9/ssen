@@ -11,8 +11,10 @@ const Dashboard = ({ invoices, currentUser, onCreateInvoice, onViewProfile, onLo
       return new Date(inv.dueDate) < new Date();
     }).length;
 
-    // User-specific stats
-    const userInvoices = invoices.filter(inv => inv.createdBy === currentUser?.id);
+    // User-specific stats (own invoices + assigned invoices)
+    const userInvoices = invoices.filter(inv => 
+      inv.createdBy === currentUser?.id || inv.reportMaker === currentUser?.fullName
+    );
     const userTotalInvoices = userInvoices.length;
     const userTotalAmount = userInvoices.reduce((sum, invoice) => sum + (invoice.total || 0), 0);
     const userPendingInvoices = userInvoices.filter(inv => inv.status === 'pending').length;
@@ -21,8 +23,8 @@ const Dashboard = ({ invoices, currentUser, onCreateInvoice, onViewProfile, onLo
     // Recent invoices (last 5) - filtered by user role
     const recentInvoices = invoices
       .filter(inv => {
-        // Admin can see all invoices, regular users only see their own
-        return currentUser?.role === 'admin' || inv.createdBy === currentUser?.id;
+        // Admin can see all invoices, regular users see their own + assigned invoices
+        return currentUser?.role === 'admin' || inv.createdBy === currentUser?.id || inv.reportMaker === currentUser?.fullName;
       })
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 5);

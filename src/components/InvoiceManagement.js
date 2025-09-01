@@ -82,8 +82,8 @@ const InvoiceManagement = ({ invoices, updateInvoice, deleteInvoice, currentUser
 
   const filteredAndSortedInvoices = useMemo(() => {
     let filtered = invoices.filter(invoice => {
-      // Filter by user permissions - users can only see their own invoices
-      const userCanSee = currentUser?.role === 'admin' || invoice.createdBy === currentUser?.id;
+      // Filter by user permissions - users can only see their own invoices or invoices assigned to them
+      const userCanSee = currentUser?.role === 'admin' || invoice.createdBy === currentUser?.id || invoice.reportMaker === currentUser?.fullName;
       if (!userCanSee) return false;
       
       const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
@@ -159,24 +159,34 @@ const InvoiceManagement = ({ invoices, updateInvoice, deleteInvoice, currentUser
   }, []);
 
   const statusCounts = useMemo(() => {
-    const counts = { all: invoices.length };
+    // Filter invoices by user permissions first
+    const userInvoices = invoices.filter(invoice => {
+      return currentUser?.role === 'admin' || invoice.createdBy === currentUser?.id || invoice.reportMaker === currentUser?.fullName;
+    });
+    
+    const counts = { all: userInvoices.length };
     Object.keys(INVOICE_STATUSES).forEach(status => {
-      counts[status] = invoices.filter(inv => inv.status === status).length;
+      counts[status] = userInvoices.filter(inv => inv.status === status).length;
     });
     return counts;
-  }, [invoices]);
+  }, [invoices, currentUser?.id, currentUser?.role, currentUser?.fullName]);
 
   const totalAmounts = useMemo(() => {
+    // Filter invoices by user permissions first
+    const userInvoices = invoices.filter(invoice => {
+      return currentUser?.role === 'admin' || invoice.createdBy === currentUser?.id || invoice.reportMaker === currentUser?.fullName;
+    });
+    
     return {
-      total: invoices.reduce((sum, inv) => sum + parseFloat(inv.total || 0), 0),
-      paid: invoices.filter(inv => inv.status === 'paid')
+      total: userInvoices.reduce((sum, inv) => sum + parseFloat(inv.total || 0), 0),
+      paid: userInvoices.filter(inv => inv.status === 'paid')
         .reduce((sum, inv) => sum + parseFloat(inv.total || 0), 0),
-      pending: invoices.filter(inv => inv.status === 'pending')
+      pending: userInvoices.filter(inv => inv.status === 'pending')
         .reduce((sum, inv) => sum + parseFloat(inv.total || 0), 0),
-      overdue: invoices.filter(inv => inv.status === 'overdue' || (inv.dueDate && new Date(inv.dueDate) < new Date() && inv.status === 'pending'))
+      overdue: userInvoices.filter(inv => inv.status === 'overdue' || (inv.dueDate && new Date(inv.dueDate) < new Date() && inv.status === 'pending'))
         .reduce((sum, inv) => sum + parseFloat(inv.total || 0), 0)
     };
-  }, [invoices]);
+  }, [invoices, currentUser?.id, currentUser?.role, currentUser?.fullName]);
 
   const exportToExcel = useCallback(() => {
     const exportData = filteredAndSortedInvoices.map(invoice => {

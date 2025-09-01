@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
-const InvoiceForm = ({ addInvoice, invoices }) => {
+const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
+  const [users, setUsers] = useState([]);
+  
   const [invoice, setInvoice] = useState({
     invoiceNumber: '',
     invoiceDate: new Date().toISOString().split('T')[0],
@@ -10,7 +12,7 @@ const InvoiceForm = ({ addInvoice, invoices }) => {
     clientMiddleName: '',
     clientLastName: '',
     clientAddress: '',
-    reportMaker: '',
+    reportMaker: currentUser?.role === 'admin' ? '' : currentUser?.fullName || '',
     inspectedBy: '',
     description: '',
     professionalFees: '',
@@ -63,6 +65,12 @@ const InvoiceForm = ({ addInvoice, invoices }) => {
     } else {
       return `${(currentYear - 1).toString().slice(-2)}-${currentYear.toString().slice(-2)}`;
     }
+  }, []);
+
+  useEffect(() => {
+    // Load users from localStorage for admin dropdown
+    const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    setUsers(storedUsers);
   }, []);
 
   const generateInvoiceNumber = useMemo(() => {
@@ -238,7 +246,7 @@ const InvoiceForm = ({ addInvoice, invoices }) => {
         clientMiddleName: '',
         clientLastName: '',
         clientAddress: '',
-        reportMaker: '',
+        reportMaker: currentUser?.role === 'admin' ? '' : currentUser?.fullName || '',
         inspectedBy: '',
         description: '',
         professionalFees: '',
@@ -490,16 +498,41 @@ const InvoiceForm = ({ addInvoice, invoices }) => {
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="reportMaker">Report Made By *</label>
-            <input
-              id="reportMaker"
-              type="text"
-              name="reportMaker"
-              placeholder="Enter report maker name"
-              value={invoice.reportMaker}
-              onChange={handleChange}
-              className={errors.reportMaker ? 'error' : ''}
-              required
-            />
+            {currentUser?.role === 'admin' ? (
+              <select
+                id="reportMaker"
+                name="reportMaker"
+                value={invoice.reportMaker}
+                onChange={handleChange}
+                className={errors.reportMaker ? 'error' : ''}
+                required
+                style={{
+                  padding: '12px',
+                  fontSize: '14px',
+                  borderRadius: '4px',
+                  border: '1px solid #ddd',
+                  backgroundColor: 'white',
+                  minHeight: '44px'
+                }}
+              >
+                <option value="">🔽 Select report maker</option>
+                {users.map(user => (
+                  <option key={user.id} value={user.fullName}>
+                    👤 {user.fullName}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                id="reportMaker"
+                type="text"
+                name="reportMaker"
+                value={currentUser?.fullName || ''}
+                readOnly
+                className="readonly-field"
+                style={{backgroundColor: '#f5f5f5', cursor: 'not-allowed'}}
+              />
+            )}
             {errors.reportMaker && <span className="error-message">{errors.reportMaker}</span>}
           </div>
           

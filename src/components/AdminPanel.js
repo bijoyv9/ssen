@@ -294,6 +294,32 @@ const AdminPanel = ({ onViewUserProfile }) => {
         )}
       </div>
 
+      {/* Clear Data for Testing */}
+      <div className="testing-section" style={{marginTop: '2rem', padding: '1rem', border: '2px solid #dc3545', borderRadius: '8px', backgroundColor: '#fff5f5'}}>
+        <h3 style={{color: '#dc3545', margin: '0 0 1rem 0'}}>🧪 Testing Tools</h3>
+        <p style={{margin: '0 0 1rem 0', color: '#666'}}>Clear all data to test user permission filtering</p>
+        <button 
+          onClick={() => {
+            if (window.confirm('Clear all data for testing? This will delete invoices, users, and banks.')) {
+              localStorage.clear();
+              alert('✅ Data cleared! Page will reload.');
+              window.location.reload();
+            }
+          }}
+          style={{
+            backgroundColor: '#dc3545',
+            color: 'white',
+            padding: '8px 16px',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px'
+          }}
+        >
+          🗑️ Clear All Data
+        </button>
+      </div>
+
       <div className="admin-info">
         <h4>👥 User Permissions:</h4>
         <ul>
