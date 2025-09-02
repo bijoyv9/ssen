@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import '../styles/invoice-management.css';
 import InvoiceDetails from './InvoiceDetails';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';

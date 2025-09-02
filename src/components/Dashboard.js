@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import '../styles/dashboard.css';
 
 const Dashboard = ({ invoices, currentUser, onCreateInvoice, onViewProfile, onLogout, onViewAllInvoices }) => {
   const stats = useMemo(() => {

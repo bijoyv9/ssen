@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import '../styles/invoice-form.css';
 
 const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
   const [users, setUsers] = useState([]);

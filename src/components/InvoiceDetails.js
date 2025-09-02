@@ -441,7 +441,7 @@ const InvoiceDetails = ({ invoice, onBack, onUpdateStatus, onAddNote, onDelete, 
           </div>
         </div>
 
-        <div className="sidebar">
+        <div className="actions-panel">
           <div className="invoices-table-container">
             <div className="section-header">
               <h3>Quick Actions</h3>

@@ -1,6 +1,6 @@
-# S. Sen & Associates - Invoice Management System
+# S. Sen & Associates - Business Management System
 
-A modern React-based invoice management system designed for professional engineering consultants.
+A comprehensive React-based business management platform designed for professional consulting services. This system handles client management, project tracking, invoicing, payment processing, document management, and performance analytics.
 
 ## 🚀 Live Demo
 [Visit the live application](https://bijoyv9.github.io/ssen)
