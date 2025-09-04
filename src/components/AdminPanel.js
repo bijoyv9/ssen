@@ -10,7 +10,7 @@ const AdminPanel = ({ onViewUserProfile }) => {
     email: '',
     phone: '',
     address: '',
-    role: 'user'
+    role: 'computer-operator'
   });
   const [errors, setErrors] = useState({});
 
@@ -196,7 +196,8 @@ const AdminPanel = ({ onViewUserProfile }) => {
                   value={newUser.role}
                   onChange={(e) => setNewUser({...newUser, role: e.target.value})}
                 >
-                  <option value="user">User</option>
+                  <option value="computer-operator">Computer Operator</option>
+                  <option value="inspector">Inspector</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
@@ -272,7 +273,8 @@ const AdminPanel = ({ onViewUserProfile }) => {
                         onChange={(e) => handleRoleChange(user.id, e.target.value)}
                         className="role-select"
                       >
-                        <option value="user">User</option>
+                        <option value="computer-operator">Computer Operator</option>
+                        <option value="inspector">Inspector</option>
                         <option value="admin">Admin</option>
                       </select>
                     </td>

@@ -144,11 +144,11 @@ html, body {
 .login-form .form-group input {
   width: 104%;
   padding: 14px 18px;
-  border: 2px solid #f0f0f0 !important;
+  border: 2px solid #e5e7eb;
   border-radius: 14px;
   font-size: 1rem;
   box-sizing: border-box;
-  background-color: #fbfbfb;
+  background-color: #f3f4f6;
   margin-left: -2%;
 }
 

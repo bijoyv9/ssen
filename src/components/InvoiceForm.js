@@ -34,28 +34,6 @@ const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const getShortForm = useCallback((name, isBank = false) => {
-    if (!name) return '';
-
-    if (isBank) {
-      const bankMap = {
-        'STATE BANK OF INDIA': 'SBI',
-        'PUNJAB NATIONAL BANK': 'PNB',
-        'UNITED BANK OF INDIA': 'UBI',
-        'BANK OF MAHARASHTRA': 'BOM',
-        'HDFC BANK': 'HDFC',
-        'ICICI BANK': 'ICICI',
-        'AXIS BANK': 'AXIS',
-      };
-      const upperCaseName = name.toUpperCase();
-      if (bankMap[upperCaseName]) {
-        return bankMap[upperCaseName];
-      }
-    }
-
-    return name.split(' ').map(word => word[0]).join('').toUpperCase();
-  }, []);
-
   const getFinancialYear = useCallback(() => {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
@@ -75,55 +53,21 @@ const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
   }, []);
 
   const generateInvoiceNumber = useMemo(() => {
-    const { bankName, clientFirstName, clientMiddleName, clientLastName, inspectedBy, reportMaker, gstApplicable } = invoice;
-    
-    const fullClientName = [clientFirstName, clientMiddleName, clientLastName].filter(name => name.trim()).join(' ');
-    
-    if (!bankName || !fullClientName || !inspectedBy || !reportMaker) {
-      return '';
-    }
-
+    const { gstApplicable } = invoice;
     const financialYear = getFinancialYear();
 
-    // If GST is applicable, use simple numeric format
-    if (gstApplicable) {
-      let serial = 1;
-      const gstInvoices = invoices.filter(inv => inv.gstApplicable);
-      
-      if (gstInvoices.length > 0) {
-        const sortedGstInvoices = [...gstInvoices].sort((a, b) => 
-          new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
-        );
-        const lastGstInvoice = sortedGstInvoices[0];
-        if (lastGstInvoice?.invoiceNumber && lastGstInvoice.invoiceNumber.match(/^\d+\/\d{2}-\d{2}$/)) {
-          const parts = lastGstInvoice.invoiceNumber.split('/');
-          const lastSerial = parseInt(parts[0], 10);
-          if (!isNaN(lastSerial)) {
-            serial = lastSerial + 1;
-          }
-        }
-      }
-      return `${serial.toString().padStart(2, '0')}/${financialYear}`;
-    }
-
-    // Regular non-GST invoice numbering
-    const bankShort = getShortForm(bankName, true);
-    const clientShort = getShortForm(fullClientName);
-    const inspectorShort = getShortForm(inspectedBy);
-    const reportMakerShort = getShortForm(reportMaker);
-
     let serial = 1;
-    const nonGstInvoices = invoices.filter(inv => !inv.gstApplicable);
     
-    if (nonGstInvoices.length > 0) {
-      const sortedInvoices = [...nonGstInvoices].sort((a, b) => 
+    if (invoices.length > 0) {
+      const sortedInvoices = [...invoices].sort((a, b) => 
         new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
       );
       const lastInvoice = sortedInvoices[0];
-      if (lastInvoice?.invoiceNumber && lastInvoice.invoiceNumber.includes('/')) {
-        const parts = lastInvoice.invoiceNumber.split('/');
-        if (parts.length > 2) {
-          const lastSerial = parseInt(parts[2], 10);
+      if (lastInvoice?.invoiceNumber) {
+        // Extract serial number from different formats
+        const match = lastInvoice.invoiceNumber.match(/(\d+)/);
+        if (match) {
+          const lastSerial = parseInt(match[1], 10);
           if (!isNaN(lastSerial)) {
             serial = lastSerial + 1;
           }
@@ -131,8 +75,10 @@ const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
       }
     }
 
-    return `${bankShort}/${clientShort}/${serial}/${inspectorShort}/${reportMakerShort}/${financialYear}`;
-  }, [invoice.bankName, invoice.clientFirstName, invoice.clientMiddleName, invoice.clientLastName, invoice.inspectedBy, invoice.reportMaker, invoice.gstApplicable, invoices, getShortForm, getFinancialYear]);
+    // Simple invoice numbering: INV/001/24-25 or INV-GST/001/24-25
+    const prefix = gstApplicable ? 'INV-GST' : 'INV';
+    return `${prefix}/${serial.toString().padStart(3, '0')}/${financialYear}`;
+  }, [invoice.gstApplicable, invoices, getFinancialYear]);
 
   useEffect(() => {
     if (generateInvoiceNumber) {
@@ -687,7 +633,7 @@ const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
         <button 
           type="submit" 
           disabled={isSubmitting || Object.keys(errors).length > 0}
-          className="submit-btn"
+          className="btn-primary"
         >
           {isSubmitting ? 'Adding Invoice...' : 'Add Invoice'}
         </button>
@@ -695,7 +641,7 @@ const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
           type="button"
           onClick={handleSaveAsDraft}
           disabled={isSubmitting}
-          className="draft-btn"
+          className="btn-secondary"
         >
           {isSubmitting ? 'Saving Draft...' : 'Save as Draft'}
         </button>

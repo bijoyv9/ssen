@@ -1,0 +1,553 @@
+import React, { useMemo, useState, useEffect } from 'react';
+import '../styles/home.css';
+
+const Home = ({ invoices, files, currentUser, onCreateInvoice, onCreateFile, onEditFile, onViewAllInvoices, onViewAllFiles, onViewProfile, onLogout, onDeleteFile, onViewFileDetails }) => {
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [bankFilter, setBankFilter] = useState('all');
+  const [branchFilter, setBranchFilter] = useState('all');
+  const [descriptionFilter, setDescriptionFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [billAmountFilter, setBillAmountFilter] = useState('all');
+  const [inspectorFilter, setInspectorFilter] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const filesPerPage = 25;
+
+  const handleProfilePictureUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const profilePicture = e.target.result;
+        const updatedUser = { ...currentUser, profilePicture };
+        
+        // Update localStorage for current user
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+        
+        // Update users array in localStorage
+        const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+        const updatedUsers = storedUsers.map(user => 
+          user.id === currentUser.id ? updatedUser : user
+        );
+        localStorage.setItem('users', JSON.stringify(updatedUsers));
+        
+        // Update current user state (would need to be passed from App component)
+        window.location.reload(); // Temporary solution to refresh user data
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showProfileDropdown && !event.target.closest('.profile-dropdown-container')) {
+        setShowProfileDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showProfileDropdown]);
+
+  const getTimeBasedGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+
+  const userSpecificFiles = useMemo(() => {
+    return currentUser?.role === 'admin' ? files :
+      files.filter(file => file.createdBy === currentUser?.id);
+  }, [files, currentUser]);
+
+  // Get unique values for dropdowns
+  const uniqueBanks = useMemo(() => {
+    const banks = [...new Set(userSpecificFiles.map(file => file.bankName).filter(Boolean))];
+    return banks.sort();
+  }, [userSpecificFiles]);
+
+  const uniqueBranches = useMemo(() => {
+    const branches = [...new Set(userSpecificFiles.map(file => file.branchName).filter(Boolean))];
+    return branches.sort();
+  }, [userSpecificFiles]);
+
+  const uniqueInspectors = useMemo(() => {
+    const inspectors = [...new Set(userSpecificFiles.map(file => file.inspectedBy || file.inspector).filter(Boolean))];
+    return inspectors.sort();
+  }, [userSpecificFiles]);
+
+
+  const filteredAndSortedFiles = useMemo(() => {
+    let filtered = userSpecificFiles;
+    
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(file => file.status === statusFilter);
+    }
+    
+    // Apply bank filter
+    if (bankFilter !== 'all') {
+      filtered = filtered.filter(file => file.bankName === bankFilter);
+    }
+    
+    // Apply branch filter
+    if (branchFilter !== 'all') {
+      filtered = filtered.filter(file => file.branchName === branchFilter);
+    }
+    
+    // Apply description filter
+    if (descriptionFilter.trim()) {
+      const descLower = descriptionFilter.toLowerCase();
+      filtered = filtered.filter(file => 
+        file.description?.toLowerCase().includes(descLower)
+      );
+    }
+    
+    // Apply date filter
+    if (dateFilter !== 'all') {
+      const today = new Date();
+      const todayStr = today.toDateString();
+      filtered = filtered.filter(file => {
+        const fileDate = new Date(file.createdAt);
+        switch (dateFilter) {
+          case 'today':
+            return fileDate.toDateString() === todayStr;
+          case 'week':
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            return fileDate >= weekAgo;
+          case 'month':
+            const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            return fileDate >= monthAgo;
+          default:
+            return true;
+        }
+      });
+    }
+    
+    // Apply bill amount filter
+    if (billAmountFilter !== 'all') {
+      filtered = filtered.filter(file => {
+        const amount = parseFloat(file.billAmount || 0);
+        switch (billAmountFilter) {
+          case 'low':
+            return amount < 50000;
+          case 'medium':
+            return amount >= 50000 && amount < 200000;
+          case 'high':
+            return amount >= 200000;
+          default:
+            return true;
+        }
+      });
+    }
+    
+    // Apply inspector filter
+    if (inspectorFilter !== 'all') {
+      filtered = filtered.filter(file => 
+        file.inspectedBy === inspectorFilter || file.inspector === inspectorFilter
+      );
+    }
+    
+    // Sort by creation date (newest first)
+    return filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }, [userSpecificFiles, statusFilter, bankFilter, branchFilter, descriptionFilter, dateFilter, billAmountFilter, inspectorFilter]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredAndSortedFiles.length / filesPerPage);
+  const startIndex = (currentPage - 1) * filesPerPage;
+  const endIndex = startIndex + filesPerPage;
+  const currentFiles = filteredAndSortedFiles.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, bankFilter, branchFilter, descriptionFilter, dateFilter, billAmountFilter, inspectorFilter]);
+
+  return (
+    <div className="home-container">
+      <div className="user-row">
+        <div className="welcome-message">
+          <span className="welcome-text">{getTimeBasedGreeting()}, {currentUser?.fullName?.split(' ')[0] || 'User'}!</span>
+        </div>
+        
+        <button className="date-btn">
+          {new Date().toLocaleDateString('en-US', { 
+            month: 'long', 
+            day: 'numeric',
+            year: 'numeric'
+          })}
+        </button>
+        
+        <div className="profile-dropdown-container">
+          <span 
+            className="profile-text"
+            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+          >
+            <label className="profile-avatar clickable-avatar">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleProfilePictureUpload}
+                style={{ display: 'none' }}
+              />
+              {currentUser?.profilePicture ? (
+                <img src={currentUser.profilePicture} alt="Profile" className="profile-image" />
+              ) : (
+                <span className="profile-letter">
+                  {currentUser?.fullName?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              )}
+            </label>
+            <div className="profile-info">
+              <div className="profile-name">{currentUser?.fullName || 'Profile'}</div>
+              <div className="user-role-text">{currentUser?.role || 'User'}</div>
+            </div>
+            <span className="dropdown-arrow">‹</span>
+          </span>
+          {showProfileDropdown && (
+            <div className="profile-dropdown">
+              <div className="dropdown-header">
+                <div className="header-left">
+                  <div className="dropdown-profile-info">
+                    <label className="dropdown-avatar clickable-avatar">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfilePictureUpload}
+                        style={{ display: 'none' }}
+                      />
+                      {currentUser?.profilePicture ? (
+                        <img src={currentUser.profilePicture} alt="Profile" className="dropdown-profile-image" />
+                      ) : (
+                        <span className="dropdown-profile-letter">
+                          {currentUser?.fullName?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                      )}
+                    </label>
+                    <div className="dropdown-user-details">
+                      <strong>{currentUser?.fullName || 'User'}</strong>
+                      <span className="user-role">{currentUser?.role || 'User'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="dropdown-divider"></div>
+              <div className="dropdown-item">
+                <span className="item-label">User ID:</span>
+                <span className="item-value">{currentUser?.id || 'N/A'}</span>
+              </div>
+              <div className="dropdown-item">
+                <span className="item-label">Phone:</span>
+                <span className="item-value">{currentUser?.phone || 'N/A'}</span>
+              </div>
+              <div className="dropdown-item">
+                <span className="item-label">Email:</span>
+                <span className="item-value">{currentUser?.email || 'N/A'}</span>
+              </div>
+              <div className="dropdown-divider"></div>
+              <div className="dropdown-actions">
+                <button 
+                  className="dropdown-action view-profile-action"
+                  onClick={() => {
+                    onViewProfile();
+                    setShowProfileDropdown(false);
+                  }}
+                >
+                  View Profile
+                </button>
+                <button 
+                  className="dropdown-action logout-action"
+                  onClick={() => {
+                    onLogout();
+                    setShowProfileDropdown(false);
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+
+      {/* File List */}
+      <div className="invoice-list-section">
+        <div className="section-header">
+          <div></div>
+          <div className="header-actions">
+            <button 
+              className="btn-secondary" 
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </button>
+            <button className="btn-primary" onClick={onCreateFile}>
+              Start a New File
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Controls */}
+        {showFilters && (
+        <div className="file-controls">
+          <div className="filter-row">
+            <div className="filter-control">
+              <label className="filter-label">Status:</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Status</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="hold">Hold</option>
+                <option value="returned">Returned</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            
+            <div className="filter-control">
+              <label className="filter-label">Bank:</label>
+              <select
+                value={bankFilter}
+                onChange={(e) => setBankFilter(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Banks</option>
+                {uniqueBanks.map(bank => (
+                  <option key={bank} value={bank}>{bank}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="filter-control">
+              <label className="filter-label">Branch:</label>
+              <select
+                value={branchFilter}
+                onChange={(e) => setBranchFilter(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Branches</option>
+                {uniqueBranches.map(branch => (
+                  <option key={branch} value={branch}>{branch}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="filter-control">
+              <label className="filter-label">Date:</label>
+              <select
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="week">Last Week</option>
+                <option value="month">Last Month</option>
+              </select>
+            </div>
+            
+            <div className="filter-control">
+              <label className="filter-label">Description:</label>
+              <input
+                type="text"
+                placeholder="Filter by description..."
+                value={descriptionFilter}
+                onChange={(e) => setDescriptionFilter(e.target.value)}
+                className="filter-input"
+              />
+            </div>
+            
+            <div className="filter-control">
+              <label className="filter-label">Bill Amount:</label>
+              <select
+                value={billAmountFilter}
+                onChange={(e) => setBillAmountFilter(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Amounts</option>
+                <option value="low">Low (&lt; Rs.50K)</option>
+                <option value="medium">Medium (Rs.50K - Rs.2L)</option>
+                <option value="high">High (&gt; Rs.2L)</option>
+              </select>
+            </div>
+            
+            <div className="filter-control">
+              <label className="filter-label">Inspector:</label>
+              <select
+                value={inspectorFilter}
+                onChange={(e) => setInspectorFilter(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Inspectors</option>
+                {uniqueInspectors.map(inspector => (
+                  <option key={inspector} value={inspector}>{inspector}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="filter-control clear-filters">
+              <button 
+                onClick={() => {
+                  setStatusFilter('all');
+                  setBankFilter('all');
+                  setBranchFilter('all');
+                  setDescriptionFilter('');
+                  setDateFilter('all');
+                  setBillAmountFilter('all');
+                  setInspectorFilter('all');
+                }}
+                className="clear-filters-btn"
+              >
+                Clear All Filters
+              </button>
+            </div>
+          </div>
+          
+          <div className="file-count">
+            {filteredAndSortedFiles.length} file{filteredAndSortedFiles.length !== 1 ? 's' : ''} found 
+            {totalPages > 1 && ` • Page ${currentPage} of ${totalPages}`}
+          </div>
+        </div>
+        )}
+
+        <div className="file-list-container">
+          <div className="file-list-header">
+            <div className="header-cell file-status">STATUS</div>
+            <div className="header-cell file-number">FILE #</div>
+            <div className="header-cell file-date">DATE</div>
+            <div className="header-cell file-client">CLIENT</div>
+            <div className="header-cell file-bank">BANK</div>
+            <div className="header-cell file-branch">BRANCH</div>
+            <div className="header-cell file-description">DESCRIPTION</div>
+            <div className="header-cell file-bill-amount">BILL AMOUNT</div>
+            <div className="header-cell file-inspector">INSPECTOR</div>
+            <div className="header-cell file-remarks">REMARKS</div>
+            <div className="header-cell file-amount">PROPERTY VALUE</div>
+          </div>
+
+          <div className="file-list-body">
+            {currentFiles.length > 0 ? (
+              currentFiles.map((file) => (
+                <div key={file.id} className="file-row">
+                  <div className="file-cell file-status">
+                    <span className={`status-badge status-${file.status || 'in-progress'}`}>
+                      {file.status ? file.status.toUpperCase().replace('-', ' ') : 'IN PROGRESS'}
+                    </span>
+                  </div>
+                  <div className="file-cell file-number">
+                    <strong 
+                      className="clickable-file-number"
+                      onClick={() => onViewFileDetails(file)}
+                      title="Click to view file details"
+                    >
+                      {file.fileNumber || 'N/A'}
+                    </strong>
+                  </div>
+                  <div className="file-cell file-date">
+                    {new Date(file.createdAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </div>
+                  <div className="file-cell file-client">
+                    <div className="client-info">
+                      <span className="client-name">{file.clientName || 'N/A'}</span>
+                      {file.clientPhone && (
+                        <span className="client-phone">{file.clientPhone}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="file-cell file-bank">
+                    <span className="bank-name">{file.bankName || 'N/A'}</span>
+                  </div>
+                  <div className="file-cell file-branch">
+                    <span className="branch-name">{file.branchName || 'N/A'}</span>
+                  </div>
+                  <div className="file-cell file-description">
+                    <div className="description-text" title={file.description}>
+                      {file.description?.length > 30 
+                        ? `${file.description.substring(0, 30)}...` 
+                        : file.description || 'No description'}
+                    </div>
+                  </div>
+                  <div className="file-cell file-bill-amount">
+                    <span className="bill-amount-value">₹{parseFloat(file.billAmount || 0).toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="file-cell file-inspector">
+                    <span className="inspector-name">{file.inspectedBy || file.inspector || 'N/A'}</span>
+                  </div>
+                  <div className="file-cell file-remarks">
+                    <div className="remarks-text" title={file.remarks}>
+                      {file.remarks?.length > 25 
+                        ? `${file.remarks.substring(0, 25)}...` 
+                        : file.remarks || 'N/A'}
+                    </div>
+                  </div>
+                  <div className="file-cell file-amount">
+                    <span className="amount-value">₹{parseFloat(file.propertyValue || file.amount || 0).toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+              ))
+            ) : null}
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="pagination-controls">
+              <button 
+                className="pagination-btn"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                ← Previous
+              </button>
+              
+              <div className="pagination-numbers">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(page => 
+                    page === 1 || 
+                    page === totalPages || 
+                    Math.abs(page - currentPage) <= 2
+                  )
+                  .map((page, index, arr) => (
+                    <React.Fragment key={page}>
+                      {index > 0 && arr[index - 1] !== page - 1 && (
+                        <span className="pagination-ellipsis">...</span>
+                      )}
+                      <button
+                        className={`pagination-number ${page === currentPage ? 'active' : ''}`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    </React.Fragment>
+                  ))}
+              </div>
+              
+              <button 
+                className="pagination-btn"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Next →
+              </button>
+            </div>
+          )}
+      </div>
+      </div>
+
+
+    </div>
+  );
+};
+
+export default Home;

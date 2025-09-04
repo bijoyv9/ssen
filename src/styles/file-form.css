@@ -1,6 +1,12 @@
-/* Invoice Form Styles */
+/* File Form Styles - Based on Invoice Form */
 
-.invoice-form {
+.file-form-page {
+  padding: 2rem;
+  background-color: #f8fafc;
+  min-height: 100vh;
+}
+
+.file-form-container {
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(10px);
   padding: 3rem;
@@ -10,31 +16,45 @@
   margin: 0 auto;
 }
 
-.invoice-form-header {
+.file-form-header {
   margin-bottom: 2.5rem;
   text-align: center;
 }
 
-.invoice-form-title {
+.file-form-header h2 {
   font-size: 2rem;
   font-weight: 700;
   color: #1f2937;
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.5rem 0;
 }
 
-.invoice-form-subtitle {
-  color: #6b7280;
-  font-size: 1rem;
+.back-btn {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: opacity 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
 }
 
-/* Form Grid Layout */
-.form-grid {
+.back-btn:hover {
+  opacity: 0.8;
+}
+
+.file-form {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 25px;
-  margin-bottom: 2rem;
+  gap: 2rem;
 }
 
+/* Form Sections */
 .form-section {
   background: white;
   border: 1px solid #f3f4f6;
@@ -43,11 +63,11 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.form-section-title {
+.form-section h3 {
   font-size: 1.1rem;
   font-weight: 600;
   color: #374151;
-  margin-bottom: 1rem;
+  margin: 0 0 1rem 0;
   padding-bottom: 0.5rem;
   border-bottom: 2px solid #f3f4f6;
   text-transform: uppercase;
@@ -62,8 +82,8 @@
   margin-bottom: 1.5rem;
 }
 
-.form-group.full-width {
-  grid-column: 1 / -1;
+.form-group:last-child {
+  margin-bottom: 0;
 }
 
 .form-group label {
@@ -103,23 +123,23 @@
   background-color: #fef2f2;
 }
 
-.form-group input.readonly-field {
-  background-color: #f8f9fa;
-  border-color: #dee2e6;
-  color: #6c757d;
-  cursor: not-allowed;
+.readonly-field {
+  background-color: #f8f9fa !important;
+  border-color: #dee2e6 !important;
+  color: #6c757d !important;
+  cursor: not-allowed !important;
 }
 
 .form-group textarea {
   resize: vertical;
-  min-height: 100px;
+  min-height: 80px;
 }
 
 .form-group select {
   cursor: pointer;
 }
 
-/* Special Form Rows */
+/* Form Rows */
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -127,9 +147,17 @@
   margin-bottom: 1.5rem;
 }
 
+.form-row:last-child {
+  margin-bottom: 0;
+}
+
+.form-row .form-group {
+  margin-bottom: 0;
+}
+
 .name-fields-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -156,143 +184,121 @@
   gap: 0.25rem;
 }
 
-.field-error {
-  color: #dc3545;
-  font-size: 0.75rem;
-  margin-top: 0.25rem;
-}
-
 /* Form Actions */
 .form-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: end;
   gap: 1rem;
   margin-top: 2rem;
   padding-top: 1.5rem;
   border-top: 1px solid #f3f4f6;
 }
 
-.save-draft-btn {
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.status-group {
+  margin-bottom: 0;
+  min-width: 150px;
 }
 
-
-
-
-
-
-.save-draft-btn {
-  background: #f59e0b;
-  color: white;
-  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
-}
-
-.save-draft-btn:hover {
-  background: #d97706;
-  box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
-  transform: translateY(-1px);
-}
-
-/* Auto-calculation Fields */
-.calculated-field {
-  background-color: #f8f9fa;
-  border-color: #dee2e6;
-  color: #495057;
-  font-weight: 600;
-}
-
-.total-section {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-top: 1rem;
-}
-
-.total-section .form-group label {
-  color: #1e40af;
-  font-size: 1.1rem;
-}
-
-.total-section .form-group input {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1e40af;
-}
-
-/* Status Indicators */
-.status-indicator {
-  display: inline-flex;
+.action-buttons {
+  display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  gap: 1rem;
 }
 
-.status-indicator.draft {
-  background: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fcd34d;
+.submit-btn,
+.cancel-btn,
+.generate-invoice-btn {
+  padding: 15px 24px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+  transform: none;
+  box-shadow: none;
+  color: white;
 }
 
-.status-indicator.pending {
-  background: #ddd6fe;
-  color: #5b21b6;
-  border: 1px solid #c4b5fd;
+.submit-btn {
+  background: #1877F2; /* Blue - for Create File */
 }
 
-.status-indicator.paid {
-  background: #d1fae5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+.submit-btn:hover {
+  opacity: 0.8;
 }
 
-.status-indicator.overdue {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fca5a5;
+.submit-btn:active {
+  opacity: 0.6;
 }
+
+.generate-invoice-btn {
+  background: #28a745; /* Green - for Generate Invoice */
+}
+
+.generate-invoice-btn:hover {
+  opacity: 0.8;
+}
+
+.generate-invoice-btn:active {
+  opacity: 0.6;
+}
+
+.cancel-btn {
+  background: #6c757d; /* Gray - for Cancel */
+}
+
+.cancel-btn:hover {
+  opacity: 0.8;
+}
+
+.cancel-btn:active {
+  opacity: 0.6;
+}
+
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .invoice-form {
+  .file-form-page {
+    padding: 1rem;
+  }
+
+  .file-form-container {
     padding: 1.5rem;
-    margin: 1rem;
+    margin: 0;
+    border-radius: 12px;
   }
-  
-  .form-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
+
+  .back-btn {
+    position: static;
+    margin-bottom: 1rem;
+    width: 100%;
   }
-  
+
+  .file-form-header {
+    margin-bottom: 1.5rem;
+    text-align: left;
+  }
+
   .form-row,
   .name-fields-row {
     grid-template-columns: 1fr;
     gap: 0.5rem;
   }
-  
+
   .form-actions {
     flex-direction: column;
+    align-items: stretch;
   }
-  
-  .save-draft-btn {
-    width: 100%;
-    margin-bottom: 0.5rem;
+
+  .action-buttons {
+    flex-direction: column;
   }
-  
-  .invoice-form-title {
+
+
+  .file-form-header h2 {
     font-size: 1.5rem;
   }
 }
@@ -304,13 +310,9 @@
     padding: 10px 12px;
     font-size: 0.9rem;
   }
-  
+
   .form-section {
     padding: 1rem;
   }
-  
-  .save-draft-btn {
-    padding: 10px 16px;
-    font-size: 0.9rem;
-  }
+
 }
