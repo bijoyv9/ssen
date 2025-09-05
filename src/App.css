@@ -13,7 +13,7 @@
   padding: 0.6rem 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   font-size: 0.9rem;
 }
 
@@ -30,7 +30,7 @@
   padding: 0.6rem 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   font-size: 0.9rem;
 }
 
@@ -50,7 +50,7 @@
 .main-content {
   opacity: 1;
   transform: translateY(0);
-  transition: all 0.3s ease-in-out;
+  transition: all 0.15s ease-in-out;
   min-height: calc(100vh - 120px);
 }
 
@@ -74,6 +74,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 300px;
   padding: 0rem;
   margin: 0;
   height: 35px;
@@ -89,16 +90,17 @@
   margin: 0 auto;
 }
 
-.logo-search-section {
+.logo-company-section {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
+
 
 .header-logo {
   height: 35px;
   width: auto;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   border-radius: 6px;
 }
 
@@ -117,7 +119,7 @@
 
 .company-name {
   font-family: 'Smooch Sans', sans-serif;
-  font-size: 1.8rem;
+  font-size: 2.2rem;
   font-weight: 700;
   color: #1d4ed8;
   margin-left: 0.3rem;
@@ -147,7 +149,7 @@
   border-radius: 10px;
   font-size: 15px;
   background-color: #f9fafb;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   outline: none;
   color: #374151;
   height: 38px;
@@ -173,7 +175,7 @@
   border-radius: 6px;
   font-size: 14px;
   background-color: white;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   outline: none;
   color: #374151;
 }
@@ -202,7 +204,7 @@
   justify-content: center;
   padding: 4px;
   border-radius: 50%;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .search-btn:hover {
@@ -241,7 +243,7 @@
   padding: 0.75rem 1rem;
   border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .search-result-item:hover {
@@ -394,7 +396,7 @@ main {
   border: 2px solid #e1e5e9;
   border-radius: 8px;
   font-size: 1rem;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   background-color: #fff;
   resize: none;
 }
@@ -458,13 +460,12 @@ main {
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   flex: 1;
 }
 
 .draft-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #0891b2, #06b6d4);
-  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
 }
 
@@ -562,7 +563,7 @@ main {
   background: #ccc;
   border-radius: 30px;
   margin-right: 1rem;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .toggle-slider::before {
@@ -574,7 +575,7 @@ main {
   height: 24px;
   background: white;
   border-radius: 50%;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
@@ -661,7 +662,7 @@ main {
   padding: 1.5rem;
   margin-bottom: 1rem;
   background: white;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .invoice-item:hover {
@@ -688,13 +689,12 @@ main {
   border-radius: 6px;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   margin-top: 0.5rem;
 }
 
 .delete-btn:hover {
   background: #c0392b;
-  transform: translateY(-1px);
 }
 
 .client-information-section {
@@ -819,7 +819,7 @@ main {
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   text-decoration: none;
   position: relative;
   border-radius: 6px;
@@ -868,7 +868,7 @@ main {
   border-radius: 4px;
   font-size: 0.8rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .manage-btn:hover {
@@ -890,7 +890,7 @@ main {
   border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .view-all-btn:hover {
@@ -928,7 +928,7 @@ main {
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -937,7 +937,6 @@ main {
 
 .export-excel-btn:hover {
   background: linear-gradient(135deg, #059669, #047857);
-  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
@@ -1028,7 +1027,7 @@ main {
   font-weight: 500;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .filter-btn:hover {
@@ -1223,7 +1222,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .table-action-btn:hover {
@@ -1288,7 +1287,7 @@ main {
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.9rem;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .pagination-btn:hover:not(:disabled) {
@@ -1320,7 +1319,7 @@ main {
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .page-number:hover {
@@ -1357,7 +1356,6 @@ main {
 }
 
 .invoice-card:hover {
-  transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
@@ -1443,7 +1441,7 @@ main {
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1525,7 +1523,7 @@ main {
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1534,7 +1532,6 @@ main {
 
 .back-btn:hover {
   background: linear-gradient(135deg, #5a6268, #495057);
-  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
 }
 
@@ -1681,7 +1678,7 @@ main {
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   text-align: center;
   display: flex;
   align-items: center;
@@ -1691,7 +1688,6 @@ main {
 }
 
 .action-btn-modern:hover {
-  transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
@@ -2514,7 +2510,6 @@ main {
 }
 
 .view-details-btn:hover {
-  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
@@ -2660,7 +2655,7 @@ main {
   cursor: pointer;
   font-size: 1.5rem;
   font-weight: bold;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2691,16 +2686,14 @@ main {
   cursor: pointer;
   font-size: 1rem;
   font-weight: 700;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
-  transform: translateY(-1px);
 }
 
 .create-invoice-btn:hover {
   background: #3f37c9;
   border-color: #3f37c9;
   box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
-  transform: translateY(-2px);
 }
 
 .profile-btn {
@@ -2712,7 +2705,7 @@ main {
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .profile-btn:hover {
@@ -2730,7 +2723,7 @@ main {
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .logout-btn:hover {
@@ -2870,7 +2863,7 @@ main {
   border-radius: 8px;
   padding: 1.5rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: flex-start;
   gap: 1rem;
@@ -2881,7 +2874,6 @@ main {
 .quick-action-card:hover {
   border-color: #3b82f6;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-  transform: translateY(-1px);
 }
 
 .quick-action-icon {
@@ -3013,15 +3005,6 @@ main {
   background-color: #eff6ff;
 }
 
-.status-badge {
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-  white-space: nowrap;
-}
 
 .status-badge.pending {
   background: #fef3c7;
@@ -3132,7 +3115,6 @@ main {
 }
 
 .create-first-invoice-btn:hover {
-  transform: translateY(-1px);
 }
 
 @media (max-width: 768px) {
@@ -3593,14 +3575,13 @@ main {
   cursor: pointer;
   font-size: 1rem;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   flex-shrink: 0;
   white-space: nowrap;
 }
 
 .add-bank-btn:hover {
   background: #218838;
-  transform: translateY(-1px);
 }
 
 .bank-form-overlay {
@@ -3734,13 +3715,12 @@ main {
   cursor: pointer;
   font-size: 1rem;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   flex: 1;
 }
 
 .save-bank-btn:hover {
   background: #1e3a6f;
-  transform: translateY(-1px);
 }
 
 .cancel-bank-btn {
@@ -3752,13 +3732,12 @@ main {
   cursor: pointer;
   font-size: 1rem;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   flex: 1;
 }
 
 .cancel-bank-btn:hover {
   background: #5a6268;
-  transform: translateY(-1px);
 }
 
 .no-banks {
@@ -3795,13 +3774,12 @@ main {
   border: 2px solid #e1e5e9;
   border-radius: 8px;
   padding: 1.5rem;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   position: relative;
 }
 
 .bank-card:hover {
   border-color: #2a5298;
-  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(42, 82, 152, 0.1);
 }
 
@@ -3858,7 +3836,7 @@ main {
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .set-default-btn {
@@ -4103,12 +4081,11 @@ main {
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .add-user-btn:hover {
   background: #059669;
-  transform: translateY(-1px);
 }
 
 /* Modal Styles */
@@ -4216,7 +4193,7 @@ main {
   cursor: pointer;
   font-weight: 500;
   flex: 1;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .save-user-btn:hover {
@@ -4304,7 +4281,7 @@ main {
   padding: 0.5rem;
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .delete-user-btn:hover {
@@ -4361,7 +4338,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
   position: relative;
   overflow: hidden;
@@ -4487,7 +4464,7 @@ main {
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4496,7 +4473,6 @@ main {
 
 .dropdown-logout-btn:hover {
   background: linear-gradient(135deg, #dc2626, #b91c1c);
-  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
@@ -4649,13 +4625,12 @@ main {
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
 }
 
 .edit-section-btn:hover {
   background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
@@ -4677,13 +4652,12 @@ main {
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
 }
 
 .save-btn:hover {
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
@@ -4738,7 +4712,7 @@ main {
   border: 2px solid #d1d5db;
   border-radius: 8px;
   font-size: 0.95rem;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   background: white;
   font-family: inherit;
 }
@@ -4918,7 +4892,7 @@ main {
   cursor: pointer;
   font-size: 1.1rem;
   opacity: 0.6;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   padding: 4px;
 }
 
@@ -4953,7 +4927,7 @@ main {
   font-size: 0.9rem;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .save-btn-small {
@@ -5037,7 +5011,7 @@ main {
   border: 2px solid #d1d5db;
   border-radius: 10px;
   font-size: 1.1rem;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   font-family: inherit;
   background: white;
 }
@@ -5065,7 +5039,7 @@ main {
   font-size: 1.2rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   margin-top: 20px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -5073,7 +5047,6 @@ main {
 
 .save-changes-btn:hover {
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
 }
 
@@ -5185,7 +5158,7 @@ main {
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -5194,7 +5167,6 @@ main {
 
 .details-header .back-btn:hover {
   background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
-  transform: translateY(-1px);
 }
 
 .invoice-header-info {
@@ -5286,6 +5258,224 @@ main {
     font-size: 2rem;
   }
 }
+
+
+/* Advanced Search Styles */
+.advanced-search-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.advanced-search-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.advanced-search-header h2 {
+  color: #1f2937;
+  margin: 0;
+  font-size: 1.875rem;
+}
+
+
+.search-filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.filter-section {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.filter-section h3 {
+  color: #374151;
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+
+.filter-input {
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.15s ease;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.description-filter {
+  grid-column: 1 / -1;
+  resize: vertical;
+}
+
+.search-results-section {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.results-header h3 {
+  color: #374151;
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.results-count {
+  color: #6b7280;
+  font-weight: 400;
+  font-size: 1rem;
+}
+
+.sort-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sort-select {
+  padding: 0.5rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.sort-order-btn {
+  background: #f3f4f6;
+  border: 2px solid #e5e7eb;
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.sort-order-btn:hover {
+  background: #e5e7eb;
+}
+
+.search-loading {
+  text-align: center;
+  padding: 3rem;
+  color: #6b7280;
+  font-size: 1.1rem;
+}
+
+.no-results {
+  text-align: center;
+  padding: 3rem;
+  color: #9ca3af;
+  font-size: 1.1rem;
+}
+
+.search-prompt {
+  text-align: center;
+  padding: 3rem;
+  color: #6b7280;
+  font-size: 1.1rem;
+}
+
+.search-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 1.5rem;
+}
+
+.file-result-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.25rem;
+  transition: all 0.15s ease;
+}
+
+.file-result-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #cbd5e1;
+}
+
+.file-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.file-result-header h4 {
+  color: #1f2937;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.file-result-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.view-btn, .edit-btn, .delete-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  font-size: 1rem;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.view-btn:hover {
+  background: #dbeafe;
+}
+
+.edit-btn:hover {
+  background: #fef3c7;
+}
+
+.delete-btn:hover {
+  background: #fee2e2;
+}
+
+.file-result-content p {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.file-result-content strong {
+  color: #1f2937;
+}
+
 
 
 /* Simple Footer Styles */

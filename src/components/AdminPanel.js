@@ -21,13 +21,8 @@ const AdminPanel = ({ onViewUserProfile }) => {
   }, []);
 
   const saveUsers = useCallback((updatedUsers) => {
-    console.log('Saving users to localStorage:', updatedUsers); // Debug log
     localStorage.setItem('users', JSON.stringify(updatedUsers));
     setUsers(updatedUsers);
-    
-    // Verify save
-    const saved = JSON.parse(localStorage.getItem('users') || '[]');
-    console.log('Verified saved users:', saved); // Debug log
   }, []);
 
   const validateUser = (user) => {

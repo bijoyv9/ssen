@@ -25,11 +25,8 @@ const Login = ({ onLogin }) => {
     
     // Check stored users
     const users = JSON.parse(localStorage.getItem('users') || '[]');
-    console.log('Stored users:', users); // Debug log
-    console.log('Attempting login with:', { username, password }); // Debug log
     
     const user = users.find(u => u.username === username && u.password === password);
-    console.log('Found user:', user); // Debug log
     
     if (user) {
       onLogin({

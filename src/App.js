@@ -9,6 +9,7 @@ import Login from './components/Login';
 import FileForm from './components/FileForm';
 import FileManagement from './components/FileManagement';
 import FileDetails from './components/FileDetails';
+import AdvancedSearch from './components/AdvancedSearch';
 import logoImg from './assets/logo.png';
 import './App.css';
 
@@ -23,9 +24,6 @@ function App() {
   const [selectedFileForEdit, setSelectedFileForEdit] = useState(null);
   const [selectedFileForDetails, setSelectedFileForDetails] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [showSearchPopup, setShowSearchPopup] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
@@ -123,17 +121,6 @@ function App() {
     return () => clearInterval(interval);
   }, [invoices]);
 
-  // Close search popup when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showSearchPopup && !event.target.closest('.search-popup-container') && !event.target.closest('.header-search')) {
-        setShowSearchPopup(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showSearchPopup]);
 
 
   useEffect(() => {
@@ -236,12 +223,12 @@ function App() {
     // Short delay to trigger fade-out
     setTimeout(() => {
       setCurrentView(newView);
-    }, 150);
+    }, 75);
     
     // Reset transition state after fade-in
     setTimeout(() => {
       setIsTransitioning(false);
-    }, 300);
+    }, 150);
   }, [currentView]);
 
   const handleViewUserProfile = useCallback((user) => {
@@ -275,124 +262,6 @@ function App() {
     }));
   }, []);
 
-  // Global search function
-  const performGlobalSearch = useCallback((query) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    const searchTerm = query.toLowerCase();
-    const results = [];
-
-    // Search through all files
-    files.forEach(file => {
-      const searchableFields = [
-        file.fileNumber,
-        file.clientName,
-        file.clientFirstName,
-        file.clientMiddleName, 
-        file.clientLastName,
-        file.clientAddress,
-        file.clientPhone,
-        file.clientEmail,
-        file.description,
-        file.propertyValue?.toString(),
-        file.bankName,
-        file.branchName,
-        file.billAmount?.toString(),
-        file.madeBy,
-        file.inspectedBy,
-        file.inspector,
-        file.remarks,
-        file.status,
-        file.notes,
-        // Add date fields
-        new Date(file.createdAt).toLocaleDateString(),
-        new Date(file.fileDate || file.createdAt).toLocaleDateString()
-      ];
-
-      const matchingFields = searchableFields.filter(field => 
-        field && field.toString().toLowerCase().includes(searchTerm)
-      );
-
-      if (matchingFields.length > 0) {
-        results.push({
-          type: 'file',
-          id: file.id,
-          title: `File ${file.fileNumber}`,
-          subtitle: `Client: ${file.clientName || 'N/A'}`,
-          description: file.description || 'No description',
-          matchedFields: matchingFields.slice(0, 3), // Show first 3 matches
-          data: file
-        });
-      }
-    });
-
-    // Search through invoices if user has access
-    if (currentUser?.role === 'admin' || currentUser?.role === 'computer-operator') {
-      invoices.forEach(invoice => {
-        const searchableFields = [
-          invoice.invoiceNumber,
-          invoice.clientFirstName,
-          invoice.clientMiddleName,
-          invoice.clientLastName,
-          invoice.clientAddress,
-          invoice.clientPhone,
-          invoice.clientEmail,
-          invoice.bankName,
-          invoice.branchName,
-          invoice.reportMaker,
-          invoice.inspectedBy,
-          invoice.total?.toString(),
-          invoice.status,
-          // Add date fields
-          new Date(invoice.createdAt).toLocaleDateString(),
-          new Date(invoice.invoiceDate).toLocaleDateString()
-        ];
-
-        const matchingFields = searchableFields.filter(field => 
-          field && field.toString().toLowerCase().includes(searchTerm)
-        );
-
-        if (matchingFields.length > 0) {
-          results.push({
-            type: 'invoice',
-            id: invoice.id,
-            title: `Invoice ${invoice.invoiceNumber}`,
-            subtitle: `Client: ${[invoice.clientFirstName, invoice.clientMiddleName, invoice.clientLastName].filter(n => n).join(' ')}`,
-            description: `Amount: ₹${parseFloat(invoice.total || 0).toLocaleString('en-IN')}`,
-            matchedFields: matchingFields.slice(0, 3),
-            data: invoice
-          });
-        }
-      });
-    }
-
-    // Sort results by relevance (more matches first)
-    results.sort((a, b) => b.matchedFields.length - a.matchedFields.length);
-
-    setSearchResults(results);
-  }, [files, invoices, currentUser]);
-
-  // Handle search input change
-  const handleSearchChange = useCallback((e) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    performGlobalSearch(query);
-  }, [performGlobalSearch]);
-
-  // Handle search result click
-  const handleSearchResultClick = useCallback((result) => {
-    setShowSearchPopup(false);
-    setSearchQuery('');
-
-    if (result.type === 'file') {
-      handleViewFileDetails(result.data);
-    } else if (result.type === 'invoice') {
-      handleViewTransition('management');
-    }
-  }, [handleViewTransition, handleViewFileDetails]);
 
 
   if (!isAuthenticated) {
@@ -403,7 +272,7 @@ function App() {
     <div className="App">      
       <header className="App-header">
         <div className="company-header">
-          <div className="logo-search-section">
+          <div className="logo-company-section">
             <img 
               src={logoImg} 
               alt="Logo" 
@@ -411,22 +280,7 @@ function App() {
               onClick={() => handleViewTransition('dashboard')}
               title="Go to Home"
             />
-            <div className="header-search">
-              <input
-                type="text"
-                placeholder="Search everything - files, invoices, clients, properties..."
-                value=""
-                onClick={() => setShowSearchPopup(true)}
-                className="header-search-input"
-                readOnly
-              />
-              <button className="search-btn" onClick={() => performGlobalSearch(searchQuery)}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              
-            </div>
+            <h1 className="company-name">S Sen & Associates</h1>
           </div>
           
           <div className="header-nav">
@@ -435,6 +289,13 @@ function App() {
               onClick={() => handleViewTransition('dashboard')}
             >
               Home
+            </button>
+            <button 
+              className={`nav-btn ${currentView === 'advancedSearch' ? 'active' : ''}`}
+              onClick={() => handleViewTransition('advancedSearch')}
+              title="Find a File"
+            >
+              Find a File
             </button>
             {currentUser?.role === 'admin' && (
               <button 
@@ -473,78 +334,13 @@ function App() {
         
       </header>
 
-      {/* Search Popup */}
-      {showSearchPopup && (
-        <div className="search-popup-overlay">
-          <div className="search-popup-container">
-            <div className="search-popup">
-              <input
-                type="text"
-                placeholder="Search everything - files, invoices, clients, properties..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                className="search-popup-input"
-                autoFocus
-              />
-              <div className="search-popup-results">
-                {searchQuery && searchResults.length > 0 && (
-                  <>
-                    <div className="search-results-header">
-                      Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
-                    </div>
-                    {searchResults.slice(0, 10).map((result, index) => (
-                      <div 
-                        key={`${result.type}-${result.id}`}
-                        className="search-result-item"
-                        onClick={() => handleSearchResultClick(result)}
-                      >
-                        <div className="search-result-main">
-                          <div className="search-result-title">{result.title}</div>
-                          <div className="search-result-subtitle">{result.subtitle}</div>
-                          <div className="search-result-description">{result.description}</div>
-                          {result.matchedFields && result.matchedFields.length > 0 && (
-                            <div className="search-result-matches">
-                              Matches: {result.matchedFields.slice(0, 2).join(', ')}
-                              {result.matchedFields.length > 2 && ` +${result.matchedFields.length - 2} more`}
-                            </div>
-                          )}
-                        </div>
-                        <div className="search-result-type">
-                          {result.type === 'file' ? 'FILE' : 'INVOICE'}
-                        </div>
-                      </div>
-                    ))}
-                    {searchResults.length > 10 && (
-                      <div className="search-results-more">
-                        And {searchResults.length - 10} more results...
-                      </div>
-                    )}
-                  </>
-                )}
-                {searchQuery && searchResults.length === 0 && (
-                  <div className="search-no-results">No results found for "{searchQuery}"</div>
-                )}
-                {!searchQuery && (
-                  <div className="search-placeholder">Start typing to search files, invoices, clients, and more...</div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <main className={`main-content ${isTransitioning ? 'transitioning' : ''}`}>
         {currentView === 'dashboard' ? (
           <Home 
-            invoices={invoices}
             files={files}
             currentUser={currentUser}
-            onCreateInvoice={() => handleViewTransition('createInvoice')}
             onCreateFile={handleCreateFile}
-            onEditFile={handleEditFile}
-            onDeleteFile={deleteFile}
-            onViewAllInvoices={() => handleViewTransition('management')}
-            onViewAllFiles={() => handleViewTransition('fileManagement')}
             onViewProfile={() => handleViewTransition('profile')}
             onViewFileDetails={handleViewFileDetails}
             onLogout={handleLogout}
@@ -620,6 +416,14 @@ function App() {
             onUpdate={updateFile}
             onAddNote={handleAddFileNote}
             onDelete={deleteFile}
+            currentUser={currentUser}
+          />
+        ) : currentView === 'advancedSearch' ? (
+          <AdvancedSearch
+            files={files}
+            onViewFileDetails={handleViewFileDetails}
+            onEditFile={handleEditFile}
+            onDeleteFile={deleteFile}
             currentUser={currentUser}
           />
         ) : (

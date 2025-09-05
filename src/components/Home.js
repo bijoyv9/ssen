@@ -1,14 +1,13 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import '../styles/home.css';
 
-const Home = ({ invoices, files, currentUser, onCreateInvoice, onCreateFile, onEditFile, onViewAllInvoices, onViewAllFiles, onViewProfile, onLogout, onDeleteFile, onViewFileDetails }) => {
+const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onViewFileDetails }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [bankFilter, setBankFilter] = useState('all');
   const [branchFilter, setBranchFilter] = useState('all');
   const [descriptionFilter, setDescriptionFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
-  const [billAmountFilter, setBillAmountFilter] = useState('all');
   const [inspectorFilter, setInspectorFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -128,22 +127,6 @@ const Home = ({ invoices, files, currentUser, onCreateInvoice, onCreateFile, onE
       });
     }
     
-    // Apply bill amount filter
-    if (billAmountFilter !== 'all') {
-      filtered = filtered.filter(file => {
-        const amount = parseFloat(file.billAmount || 0);
-        switch (billAmountFilter) {
-          case 'low':
-            return amount < 50000;
-          case 'medium':
-            return amount >= 50000 && amount < 200000;
-          case 'high':
-            return amount >= 200000;
-          default:
-            return true;
-        }
-      });
-    }
     
     // Apply inspector filter
     if (inspectorFilter !== 'all') {
@@ -154,7 +137,7 @@ const Home = ({ invoices, files, currentUser, onCreateInvoice, onCreateFile, onE
     
     // Sort by creation date (newest first)
     return filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [userSpecificFiles, statusFilter, bankFilter, branchFilter, descriptionFilter, dateFilter, billAmountFilter, inspectorFilter]);
+  }, [userSpecificFiles, statusFilter, bankFilter, branchFilter, descriptionFilter, dateFilter, inspectorFilter]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredAndSortedFiles.length / filesPerPage);
@@ -165,7 +148,7 @@ const Home = ({ invoices, files, currentUser, onCreateInvoice, onCreateFile, onE
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, bankFilter, branchFilter, descriptionFilter, dateFilter, billAmountFilter, inspectorFilter]);
+  }, [statusFilter, bankFilter, branchFilter, descriptionFilter, dateFilter, inspectorFilter]);
 
   return (
     <div className="home-container">
@@ -281,7 +264,7 @@ const Home = ({ invoices, files, currentUser, onCreateInvoice, onCreateFile, onE
           <div></div>
           <div className="header-actions">
             <button 
-              className="btn-secondary" 
+              className="filter-toggle-btn" 
               onClick={() => setShowFilters(!showFilters)}
             >
               {showFilters ? 'Hide Filters' : 'Show Filters'}
@@ -293,8 +276,7 @@ const Home = ({ invoices, files, currentUser, onCreateInvoice, onCreateFile, onE
         </div>
 
         {/* Filter Controls */}
-        {showFilters && (
-        <div className="file-controls">
+        <div className={`file-controls ${showFilters ? 'filters-open' : 'filters-closed'}`}>
           <div className="filter-row">
             <div className="filter-control">
               <label className="filter-label">Status:</label>
@@ -355,31 +337,6 @@ const Home = ({ invoices, files, currentUser, onCreateInvoice, onCreateFile, onE
             </div>
             
             <div className="filter-control">
-              <label className="filter-label">Description:</label>
-              <input
-                type="text"
-                placeholder="Filter by description..."
-                value={descriptionFilter}
-                onChange={(e) => setDescriptionFilter(e.target.value)}
-                className="filter-input"
-              />
-            </div>
-            
-            <div className="filter-control">
-              <label className="filter-label">Bill Amount:</label>
-              <select
-                value={billAmountFilter}
-                onChange={(e) => setBillAmountFilter(e.target.value)}
-                className="filter-select"
-              >
-                <option value="all">All Amounts</option>
-                <option value="low">Low (&lt; Rs.50K)</option>
-                <option value="medium">Medium (Rs.50K - Rs.2L)</option>
-                <option value="high">High (&gt; Rs.2L)</option>
-              </select>
-            </div>
-            
-            <div className="filter-control">
               <label className="filter-label">Inspector:</label>
               <select
                 value={inspectorFilter}
@@ -393,7 +350,19 @@ const Home = ({ invoices, files, currentUser, onCreateInvoice, onCreateFile, onE
               </select>
             </div>
             
+            <div className="filter-control">
+              <label className="filter-label">Description:</label>
+              <input
+                type="text"
+                placeholder="Filter by description..."
+                value={descriptionFilter}
+                onChange={(e) => setDescriptionFilter(e.target.value)}
+                className="filter-input"
+              />
+            </div>
+            
             <div className="filter-control clear-filters">
+              <label className="filter-label" style={{visibility: 'hidden'}}>Clear:</label>
               <button 
                 onClick={() => {
                   setStatusFilter('all');
@@ -401,7 +370,6 @@ const Home = ({ invoices, files, currentUser, onCreateInvoice, onCreateFile, onE
                   setBranchFilter('all');
                   setDescriptionFilter('');
                   setDateFilter('all');
-                  setBillAmountFilter('all');
                   setInspectorFilter('all');
                 }}
                 className="clear-filters-btn"
@@ -416,7 +384,6 @@ const Home = ({ invoices, files, currentUser, onCreateInvoice, onCreateFile, onE
             {totalPages > 1 && ` • Page ${currentPage} of ${totalPages}`}
           </div>
         </div>
-        )}
 
         <div className="file-list-container">
           <div className="file-list-header">
