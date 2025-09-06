@@ -1,14 +1,24 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import '../styles/file-form.css';
 
-const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUser }) => {
+const FileForm = ({ onSave, onUpdate, onCancel, onGenerateInvoice, editingFile, files = [], currentUser }) => {
   // Get users from localStorage to populate dropdowns
   const [users, setUsers] = useState([]);
+  const [saveMessage, setSaveMessage] = useState('');
+  const [hasChanges, setHasChanges] = useState(false);
+  const [initialFormData, setInitialFormData] = useState(null);
+  const [currentEditingFile, setCurrentEditingFile] = useState(editingFile);
   
   // Default banks
   const defaultBanks = [
     { id: 'sbi', bankName: 'STATE BANK OF INDIA' },
-    { id: 'pnb', bankName: 'PUNJAB NATIONAL BANK' }
+    { id: 'pnb', bankName: 'PUNJAB NATIONAL BANK' },
+    { id: 'ubi', bankName: 'UNION BANK OF INDIA' },
+    { id: 'bom', bankName: 'BANK OF MAHARASHTRA' },
+    { id: 'ib', bankName: 'INDIAN BANK' },
+    { id: 'boi', bankName: 'BANK OF INDIA' },
+    { id: 'cb', bankName: 'CANARA BANK' },
+    { id: 'uco', bankName: 'UCO BANK' }
   ];
   
   useEffect(() => {
@@ -21,12 +31,13 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
     clientMiddleName: '',
     clientLastName: '',
     clientAddress: '',
+    clientCountryCode: '+91',
     clientPhone: '',
     clientEmail: '',
     description: '',
     propertyValue: '',
     remarks: '',
-    status: 'pending',
+    status: 'in-progress',
     madeBy: currentUser?.fullName || '',
     inspectedBy: '',
     fileDate: new Date().toISOString().split('T')[0],
@@ -37,6 +48,20 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
   const getShortForm = useCallback((name) => {
     if (!name) return '';
     return name.split(' ').map(word => word[0]).join('').toUpperCase();
+  }, []);
+
+  const getBankShortForm = useCallback((bankName) => {
+    const bankMappings = {
+      'STATE BANK OF INDIA': 'SBI',
+      'PUNJAB NATIONAL BANK': 'PNB',
+      'UNION BANK OF INDIA': 'UBI',
+      'BANK OF MAHARASHTRA': 'BOM',
+      'INDIAN BANK': 'IB',
+      'BANK OF INDIA': 'BOI',
+      'CANARA BANK': 'CB',
+      'UCO BANK': 'UCO'
+    };
+    return bankMappings[bankName] || 'BNK';
   }, []);
 
   const getFinancialYear = useCallback(() => {
@@ -65,7 +90,7 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
       );
       const lastFile = sortedFiles[0];
       if (lastFile?.fileNumber) {
-        // Extract serial number from different formats (same algorithm as invoice)
+        // Extract serial number from different formats
         const match = lastFile.fileNumber.match(/(\d+)/);
         if (match) {
           const lastSerial = parseInt(match[1], 10);
@@ -76,15 +101,50 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
       }
     }
 
-    // Simple file numbering: FILE/001/24-25
-    return `FILE/${serial.toString().padStart(3, '0')}/${financialYear}`;
-  }, [files, editingFile, getFinancialYear]);
+    // New format: BANK/CLIENT/SERIAL/INSPECTOR/MAKER/YEAR
+    const bankShort = getBankShortForm(formData.bankName) || 'BNK';
+    const clientShort = getShortForm(`${formData.clientFirstName} ${formData.clientLastName}`.trim()) || 'CLT';
+    const inspectorShort = getShortForm(formData.inspectedBy) || 'INS';
+    const makerShort = getShortForm(formData.madeBy) || 'MKR';
+    
+    return `${bankShort}/${clientShort}/${serial.toString().padStart(2, '0')}/${inspectorShort}/${makerShort}/${financialYear}`;
+  }, [files, editingFile, getFinancialYear, formData.bankName, formData.clientFirstName, formData.clientLastName, formData.inspectedBy, formData.madeBy, getBankShortForm, getShortForm]);
 
   useEffect(() => {
     if (editingFile) {
-      setFormData(editingFile);
+      setCurrentEditingFile(editingFile);
     }
   }, [editingFile]);
+
+  useEffect(() => {
+    if (currentEditingFile) {
+      // Split phone number into country code and phone number
+      let countryCode = '+91';
+      let phoneNumber = currentEditingFile.clientPhone || '';
+      
+      if (phoneNumber && phoneNumber.includes(' ')) {
+        const parts = phoneNumber.split(' ');
+        countryCode = parts[0];
+        phoneNumber = parts.slice(1).join(' ');
+      }
+      
+      const formDataWithPhone = {
+        ...currentEditingFile,
+        clientCountryCode: countryCode,
+        clientPhone: phoneNumber
+      };
+      
+      setFormData(formDataWithPhone);
+      setInitialFormData(formDataWithPhone);
+      setHasChanges(false);
+    } else {
+      // For new files, set initial form data after first render
+      if (formData.clientFirstName || formData.clientLastName || formData.description) {
+        setInitialFormData({...formData});
+        setHasChanges(false);
+      }
+    }
+  }, [currentEditingFile]);
 
   useEffect(() => {
     if (generateFileNumber) {
@@ -92,8 +152,30 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
     }
   }, [generateFileNumber]);
 
+  // Set initial form data for new files
+  useEffect(() => {
+    if (!editingFile && !initialFormData) {
+      setInitialFormData({...formData});
+      setHasChanges(false);
+    }
+  }, [formData.madeBy]); // Trigger when currentUser data is loaded
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Special validation for phone number when country code is +91
+    if (name === 'clientPhone' && formData.clientCountryCode === '+91') {
+      // Allow only digits and limit to 10 characters
+      const digitsOnly = value.replace(/\D/g, '');
+      if (digitsOnly.length > 10) return; // Don't update if more than 10 digits
+      
+      setFormData(prev => ({
+        ...prev,
+        [name]: digitsOnly
+      }));
+      setHasChanges(true);
+      return;
+    }
     
     // Convert ALL text fields to uppercase
     const textFields = ['clientFirstName', 'clientMiddleName', 'clientLastName', 'clientAddress', 'clientPhone', 'clientEmail', 'description', 'bankName', 'branchName', 'remarks'];
@@ -103,7 +185,49 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
       ...prev,
       [name]: processedValue
     }));
+    setHasChanges(true);
   };
+
+  const createFileData = useCallback(() => {
+    // For editing, preserve all original file properties and only update the changed ones
+    if (currentEditingFile && currentEditingFile.id) {
+      return {
+        ...currentEditingFile, // Start with original file data
+        ...formData, // Override with form changes
+        id: currentEditingFile.id, // Explicitly preserve original ID
+        fileNumber: currentEditingFile.fileNumber, // Preserve original file number
+        createdAt: currentEditingFile.createdAt, // Preserve original creation date
+        updatedAt: new Date().toISOString(),
+        propertyValue: parseFloat(formData.propertyValue),
+        // Combine country code and phone number for storage
+        clientPhone: formData.clientCountryCode && formData.clientPhone ? `${formData.clientCountryCode} ${formData.clientPhone}` : formData.clientPhone,
+        // Create combined client name for display purposes
+        clientName: `${formData.clientFirstName} ${formData.clientMiddleName || ''} ${formData.clientLastName}`.trim(),
+        propertyAddress: formData.description,
+        reportMaker: formData.madeBy,
+        fileType: 'valuation',
+        priority: 'normal'
+      };
+    } else {
+      // For new files, create fresh data
+      return {
+        ...formData,
+        id: Date.now().toString(),
+        fileNumber: generateFileNumber,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        propertyValue: parseFloat(formData.propertyValue),
+        // Combine country code and phone number for storage
+        clientPhone: formData.clientCountryCode && formData.clientPhone ? `${formData.clientCountryCode} ${formData.clientPhone}` : formData.clientPhone,
+        // Create combined client name for display purposes
+        clientName: `${formData.clientFirstName} ${formData.clientMiddleName || ''} ${formData.clientLastName}`.trim(),
+        propertyAddress: formData.description,
+        reportMaker: formData.madeBy,
+        fileType: 'valuation',
+        priority: 'normal'
+      };
+    }
+  }, [formData, currentEditingFile, generateFileNumber]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -113,26 +237,86 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
       return;
     }
 
-    const fileData = {
-      ...formData,
-      id: editingFile ? editingFile.id : Date.now().toString(),
-      fileNumber: editingFile ? editingFile.fileNumber : generateFileNumber,
-      createdAt: editingFile ? editingFile.createdAt : new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      propertyValue: parseFloat(formData.propertyValue),
-      // Create combined client name for display purposes
-      clientName: `${formData.clientFirstName} ${formData.clientMiddleName || ''} ${formData.clientLastName}`.trim()
-    };
-
-    onSave(fileData);
+    const fileData = createFileData();
+    
+    // Call appropriate callback based on mode
+    if (currentEditingFile) {
+      // We're in edit mode, call onUpdate if available, otherwise onSave
+      if (onUpdate) {
+        onUpdate(fileData.id, fileData);
+      } else {
+        onSave(fileData);
+      }
+    } else {
+      // We're in create mode, call onSave
+      onSave(fileData);
+      // Switch to edit mode after first successful save
+      setCurrentEditingFile(fileData);
+    }
+    
+    
+    // Only show save message if there were actual changes
+    if (hasChanges) {
+      setSaveMessage(currentEditingFile ? 'File updated successfully!' : 'File saved successfully!');
+      setTimeout(() => setSaveMessage(''), 3000);
+      setHasChanges(false);
+      setInitialFormData({...fileData});
+    }
   };
 
+  const handleGenerateInvoice = useCallback(() => {
+    if (!formData.clientFirstName || !formData.clientLastName || !formData.description || !formData.propertyValue) {
+      alert('Please fill in all required fields before generating invoice');
+      return;
+    }
+
+    const fileData = createFileData();
+    onSave(fileData); // Auto-save the file
+    onGenerateInvoice(fileData); // Navigate to invoice creation with the file data
+  }, [formData, createFileData, onSave, onGenerateInvoice]);
+
+  const handleStatusUpdate = useCallback((newStatus) => {
+    if (!formData.clientFirstName || !formData.clientLastName || !formData.description || !formData.propertyValue) {
+      alert('Please fill in all required fields before updating status');
+      return;
+    }
+
+    // Create file data with the new status
+    const fileData = {
+      ...createFileData(),
+      status: newStatus
+    };
+
+    // Call appropriate callback based on mode
+    if (currentEditingFile) {
+      if (onUpdate) {
+        onUpdate(fileData.id, fileData);
+      } else {
+        onSave(fileData);
+      }
+    } else {
+      onSave(fileData);
+      setCurrentEditingFile(fileData);
+    }
+
+    // Update form data to reflect the new status
+    setFormData(prev => ({ ...prev, status: newStatus }));
+    
+    // Show success message
+    const statusMessages = {
+      'hold': 'File marked as Hold',
+      'returned': 'File marked as Returned'
+    };
+    setSaveMessage(statusMessages[newStatus] || 'File status updated');
+    setTimeout(() => setSaveMessage(''), 3000);
+    setHasChanges(false);
+  }, [formData, createFileData, currentEditingFile, onSave, onUpdate, setSaveMessage, setHasChanges]);
+
   return (
-    <div className="file-form-page">
+    <div className="file-form-page page-transition-enter-active">
       <div className="file-form-container">
         <div className="file-form-header">
-          <h2>{editingFile ? 'Edit File' : 'Start a New File'}</h2>
-          <button className="btn-secondary" onClick={onCancel}>← Back to Home</button>
+          <h2>{currentEditingFile ? 'Edit File Details' : 'Start a New Report'}</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="file-form">
@@ -176,7 +360,7 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
                   value={formData.clientFirstName}
                   onChange={handleInputChange}
                   style={{ textTransform: 'uppercase' }}
-                  placeholder="ENTER FIRST NAME"
+                  placeholder="FIRST NAME"
                   required
                 />
               </div>
@@ -188,7 +372,7 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
                   value={formData.clientMiddleName}
                   onChange={handleInputChange}
                   style={{ textTransform: 'uppercase' }}
-                  placeholder="ENTER MIDDLE NAME"
+                  placeholder="MIDDLE NAME"
                 />
               </div>
               <div className="form-group">
@@ -199,7 +383,7 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
                   value={formData.clientLastName}
                   onChange={handleInputChange}
                   style={{ textTransform: 'uppercase' }}
-                  placeholder="ENTER LAST NAME"
+                  placeholder="LAST NAME"
                   required
                 />
               </div>
@@ -208,14 +392,26 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
             <div className="form-row">
               <div className="form-group">
                 <label>Phone</label>
-                <input
-                  type="tel"
-                  name="clientPhone"
-                  value={formData.clientPhone}
-                  onChange={handleInputChange}
-                  style={{ textTransform: 'uppercase' }}
-                  placeholder="ENTER PHONE NUMBER"
-                />
+                <div style={{ display: 'flex', gap: '5px' }}>
+                  <input
+                    type="text"
+                    name="clientCountryCode"
+                    value={formData.clientCountryCode}
+                    onChange={handleInputChange}
+                    style={{ width: '70px', textAlign: 'center' }}
+                    placeholder="+91"
+                  />
+                  <input
+                    type="tel"
+                    name="clientPhone"
+                    value={formData.clientPhone}
+                    onChange={handleInputChange}
+                    style={{ flex: 1 }}
+                    placeholder={formData.clientCountryCode === '+91' ? '9876543210' : 'PHONE NUMBER'}
+                    maxLength={formData.clientCountryCode === '+91' ? 10 : undefined}
+                    pattern={formData.clientCountryCode === '+91' ? '[0-9]{10}' : undefined}
+                  />
+                </div>
               </div>
               <div className="form-group">
                 <label>Email</label>
@@ -225,7 +421,7 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
                   value={formData.clientEmail}
                   onChange={handleInputChange}
                   style={{ textTransform: 'uppercase' }}
-                  placeholder="ENTER EMAIL ADDRESS"
+                  placeholder="EMAIL ADDRESS"
                 />
               </div>
             </div>
@@ -238,7 +434,7 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
                 onChange={handleInputChange}
                 rows="2"
                 style={{ textTransform: 'uppercase' }}
-                placeholder="ENTER CLIENT ADDRESS"
+                placeholder="CLIENT ADDRESS"
               />
             </div>
           </div>
@@ -246,22 +442,21 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
           {/* Property Information */}
           <div className="form-section">
             <h3>Property Information</h3>
-            <div className="form-group">
-              <label>Property Type *</label>
-              <input
-                type="text"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                style={{ textTransform: 'uppercase' }}
-                placeholder="ENTER PROPERTY TYPE (E.G., LAND & BUILDING, FLAT)"
-                required
-              />
-            </div>
-
             <div className="form-row">
-              <div className="form-group">
-                <label>Property Value *</label>
+              <div className="form-group" style={{ flex: '2' }}>
+                <label>Type *</label>
+                <input
+                  type="text"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  style={{ textTransform: 'uppercase' }}
+                  placeholder="PROPERTY TYPE (E.G., LAND & BUILDING, FLAT)"
+                  required
+                />
+              </div>
+              <div className="form-group" style={{ flex: '1' }}>
+                <label>Value *</label>
                 <input
                   type="number"
                   name="propertyValue"
@@ -269,7 +464,7 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
                   onChange={handleInputChange}
                   step="0.01"
                   min="0"
-                  placeholder="Enter property value in ₹"
+                  placeholder="Property value in ₹"
                   required
                 />
               </div>
@@ -302,7 +497,7 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
                   name="branchName"
                   value={formData.branchName}
                   onChange={handleInputChange}
-                  placeholder="ENTER BRANCH NAME"
+                  placeholder="BRANCH NAME"
                   style={{ textTransform: 'uppercase' }}
                 />
               </div>
@@ -330,13 +525,14 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
                   name="inspectedBy"
                   value={formData.inspectedBy}
                   onChange={handleInputChange}
+                  style={{ textTransform: 'uppercase' }}
                 >
-                  <option value="">Select Inspector</option>
+                  <option value="">SELECT INSPECTOR</option>
                   {users
                     .filter(user => user.role === 'inspector')
                     .map(user => (
                       <option key={user.id} value={user.fullName}>
-                        {user.fullName}
+                        {user.fullName.toUpperCase()}
                       </option>
                     ))}
                 </select>
@@ -351,40 +547,117 @@ const FileForm = ({ onSave, onCancel, editingFile, banks, files = [], currentUse
                 onChange={handleInputChange}
                 rows="3"
                 style={{ textTransform: 'uppercase' }}
-                placeholder="ADDITIONAL REMARKS OR COMMENTS..."
+                placeholder="ADDITIONAL REMARKS OR COMMENTS"
               />
             </div>
+
+            {/* Save Message */}
+            {saveMessage && (
+              <div style={{
+                backgroundColor: '#10b981',
+                color: 'white',
+                padding: '12px 20px',
+                borderRadius: '8px',
+                margin: '1rem 0',
+                fontSize: '14px',
+                fontWeight: '500',
+                textAlign: 'center',
+                animation: 'fadeIn 0.3s ease-out'
+              }}>
+                ✓ {saveMessage}
+              </div>
+            )}
           </div>
 
           <div className="form-actions">
-            <div className="form-group status-group">
-              <label>Status</label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-              >
-                <option value="pending">Pending</option>
-                <option value="in-progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-            
-            <div className="action-buttons">
+            <div className="action-buttons" style={{justifyContent: 'flex-end'}}>
               <button type="submit" className="btn-primary">
-                {editingFile ? 'Update File' : 'Create File'}
+                {currentEditingFile ? 'Update' : 'Submit'}
               </button>
-              <button type="button" className="btn-secondary">
+              <button 
+                type="button" 
+                className="btn-primary" 
+                style={{
+                  backgroundColor: 'rgba(16, 185, 129, 0.1)', 
+                  color: '#059669', 
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(16, 185, 129, 0.2)';
+                  e.target.style.borderColor = 'rgba(16, 185, 129, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                  e.target.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                }}
+                onClick={handleGenerateInvoice}
+              >
                 Generate Invoice
               </button>
-              <button type="button" className="btn-secondary" onClick={onCancel}>
+              <button 
+                type="button" 
+                className="btn-primary" 
+                style={{
+                  backgroundColor: 'rgba(245, 158, 11, 0.1)', 
+                  color: '#d97706', 
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(245, 158, 11, 0.2)';
+                  e.target.style.borderColor = 'rgba(245, 158, 11, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
+                  e.target.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+                }}
+                onClick={() => handleStatusUpdate('hold')}
+              >
+                Mark as Hold
+              </button>
+              <button 
+                type="button" 
+                className="btn-primary" 
+                style={{
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+                  color: '#dc2626', 
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+                  e.target.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                  e.target.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                }}
+                onClick={() => handleStatusUpdate('returned')}
+              >
+                Return
+              </button>
+              <button type="button" className="btn-primary" onClick={onCancel}>
                 Cancel
               </button>
             </div>
           </div>
         </form>
       </div>
+
+      
+      <style>{`
+        @keyframes fadeIn {
+          from { 
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 };

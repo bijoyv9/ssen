@@ -2,18 +2,15 @@
 
 .file-form-page {
   padding: 2rem;
-  background-color: #f8fafc;
   min-height: 100vh;
 }
 
 .file-form-container {
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(10px);
-  padding: 3rem;
-  border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.08), 0 0 0 1px rgba(59,130,246,0.1);
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 0 auto;
+  border: none;
+  box-shadow: none;
+  outline: none;
 }
 
 .file-form-header {
@@ -31,7 +28,7 @@
 .back-btn {
   background: #f3f4f6;
   color: #374151;
-  border: 1px solid #d1d5db;
+  border: none;
   padding: 8px 16px;
   border-radius: 8px;
   cursor: pointer;
@@ -51,16 +48,19 @@
 
 .file-form {
   display: grid;
-  gap: 2rem;
+  gap: 1.5rem;
+  border: none;
+  box-shadow: none;
+  outline: none;
 }
 
 /* Form Sections */
 .form-section {
-  background: white;
-  border: 1px solid #f3f4f6;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 1rem 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  outline: none;
 }
 
 .form-section h3 {
@@ -69,7 +69,6 @@
   color: #374151;
   margin: 0 0 1rem 0;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #f3f4f6;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -80,6 +79,10 @@
   flex-direction: column;
   gap: 8px;
   margin-bottom: 1.5rem;
+}
+
+.uppercase-input {
+  text-transform: uppercase;
 }
 
 .form-group:last-child {
@@ -99,7 +102,7 @@
 .form-group textarea,
 .form-group select {
   padding: 12px 16px;
-  border: 2px solid #e1e5e9;
+  border: 1px solid #e1e5e9;
   border-radius: 8px;
   font-size: 1rem;
   background-color: white;
@@ -112,7 +115,6 @@
 .form-group select:focus {
   outline: none;
   border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   background-color: #fafbff;
 }
 
@@ -125,7 +127,7 @@
 
 .readonly-field {
   background-color: #f8f9fa !important;
-  border-color: #dee2e6 !important;
+  border: 1px solid #dee2e6 !important;
   color: #6c757d !important;
   cursor: not-allowed !important;
 }
@@ -187,12 +189,11 @@
 /* Form Actions */
 .form-actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: end;
   gap: 1rem;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #f3f4f6;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
 }
 
 .status-group {

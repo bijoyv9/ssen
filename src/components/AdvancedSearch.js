@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-function AdvancedSearch({ files, onViewFileDetails, onEditFile, onDeleteFile, currentUser }) {
+function AdvancedSearch({ files, onEditFile, onDeleteFile, currentUser }) {
   const [searchFilters, setSearchFilters] = useState({
     fileNumber: '',
     clientName: '',
@@ -380,11 +380,11 @@ function AdvancedSearch({ files, onViewFileDetails, onEditFile, onDeleteFile, cu
                   <h4>File {file.fileNumber}</h4>
                   <div className="file-result-actions">
                     <button
-                      onClick={() => onViewFileDetails(file)}
+                      onClick={() => onEditFile(file)}
                       className="view-btn"
-                      title="View Details"
+                      title="Edit File"
                     >
-                      👁️
+                      ✏️
                     </button>
                     {(currentUser?.role === 'admin' || currentUser?.id === file.createdBy) && (
                       <>

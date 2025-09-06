@@ -1,21 +1,19 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import '../styles/invoice-form.css';
 
-const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
+const InvoiceForm = ({ addInvoice, invoices, files = [], selectedFileForInvoice, currentUser, onBackToFiles, onInvoiceSubmitted }) => {
   const [users, setUsers] = useState([]);
+  const [currentFile, setCurrentFile] = useState('');
+  const [additionalFiles, setAdditionalFiles] = useState([]);
   
   const [invoice, setInvoice] = useState({
     invoiceNumber: '',
     invoiceDate: new Date().toISOString().split('T')[0],
-    bankName: '',
-    branchName: '',
     clientFirstName: '',
     clientMiddleName: '',
     clientLastName: '',
     clientAddress: '',
-    reportMaker: currentUser?.role === 'admin' ? '' : currentUser?.fullName || '',
-    inspectedBy: '',
-    description: '',
+    bankName: '',
     professionalFees: '',
     advance: '',
     total: 0,
@@ -34,6 +32,18 @@ const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const addAdditionalFile = useCallback(() => {
+    setAdditionalFiles(prev => [...prev, '']);
+  }, []);
+
+  const removeAdditionalFile = useCallback((index) => {
+    setAdditionalFiles(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const updateAdditionalFile = useCallback((index, fileId) => {
+    setAdditionalFiles(prev => prev.map((file, i) => i === index ? fileId : file));
+  }, []);
+
   const getFinancialYear = useCallback(() => {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
@@ -50,6 +60,54 @@ const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
     // Load users from localStorage for admin dropdown
     const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
     setUsers(storedUsers);
+    
+    // Set currentFile based on selectedFileForInvoice or fallback to first in-progress file
+    if (selectedFileForInvoice) {
+      setCurrentFile(selectedFileForInvoice.id);
+    } else {
+      const inProgressFiles = files.filter(file => file.status === 'in-progress');
+      if (inProgressFiles.length > 0) {
+        setCurrentFile(inProgressFiles[0].id);
+      }
+    }
+  }, [files, selectedFileForInvoice]);
+
+  // Auto-populate client information when currentFile changes
+  useEffect(() => {
+    if (currentFile) {
+      // First try to find in the files array
+      let selectedFile = files.find(f => f.id === currentFile);
+      
+      // If not found in files array, use selectedFileForInvoice (newly created file)
+      if (!selectedFile && selectedFileForInvoice && selectedFileForInvoice.id === currentFile) {
+        selectedFile = selectedFileForInvoice;
+      }
+      
+      if (selectedFile) {
+        setInvoice(prev => ({
+          ...prev,
+          clientFirstName: selectedFile.clientFirstName || '',
+          clientMiddleName: selectedFile.clientMiddleName || '',
+          clientLastName: selectedFile.clientLastName || '',
+          clientAddress: selectedFile.clientAddress || '',
+          bankName: selectedFile.bankName || ''
+        }));
+      }
+    }
+  }, [currentFile, files, selectedFileForInvoice]);
+
+  const getBankShortForm = useCallback((bankName) => {
+    const bankMappings = {
+      'STATE BANK OF INDIA': 'SBI',
+      'PUNJAB NATIONAL BANK': 'PNB',
+      'UNION BANK OF INDIA': 'UBI',
+      'BANK OF MAHARASHTRA': 'BOM',
+      'INDIAN BANK': 'IB',
+      'BANK OF INDIA': 'BOI',
+      'CANARA BANK': 'CB',
+      'UCO BANK': 'UCO'
+    };
+    return bankMappings[bankName] || 'BNK';
   }, []);
 
   const generateInvoiceNumber = useMemo(() => {
@@ -59,26 +117,37 @@ const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
     let serial = 1;
     
     if (invoices.length > 0) {
-      const sortedInvoices = [...invoices].sort((a, b) => 
-        new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
-      );
-      const lastInvoice = sortedInvoices[0];
-      if (lastInvoice?.invoiceNumber) {
-        // Extract serial number from different formats
-        const match = lastInvoice.invoiceNumber.match(/(\d+)/);
-        if (match) {
-          const lastSerial = parseInt(match[1], 10);
-          if (!isNaN(lastSerial)) {
-            serial = lastSerial + 1;
+      // Filter invoices by type (GST or normal) for separate numbering
+      const filteredInvoices = invoices.filter(inv => inv.gstApplicable === gstApplicable);
+      
+      if (filteredInvoices.length > 0) {
+        const sortedInvoices = [...filteredInvoices].sort((a, b) => 
+          new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+        );
+        const lastInvoice = sortedInvoices[0];
+        if (lastInvoice?.invoiceNumber) {
+          // Extract serial number from different formats
+          const match = lastInvoice.invoiceNumber.match(/(\d+)/);
+          if (match) {
+            const lastSerial = parseInt(match[1], 10);
+            if (!isNaN(lastSerial)) {
+              serial = lastSerial + 1;
+            }
           }
         }
       }
     }
 
-    // Simple invoice numbering: INV/001/24-25 or INV-GST/001/24-25
-    const prefix = gstApplicable ? 'INV-GST' : 'INV';
-    return `${prefix}/${serial.toString().padStart(3, '0')}/${financialYear}`;
-  }, [invoice.gstApplicable, invoices, getFinancialYear]);
+    // New numbering: GST invoices = 01/25-26, Normal invoices = SBI/01/25-26
+    if (gstApplicable) {
+      // GST invoices: just serial/year
+      return `${serial.toString().padStart(2, '0')}/${financialYear}`;
+    } else {
+      // Normal invoices: bank/serial/year
+      const bankShort = getBankShortForm(invoice.bankName) || 'BNK';
+      return `${bankShort}/${serial.toString().padStart(2, '0')}/${financialYear}`;
+    }
+  }, [invoice.gstApplicable, invoice.bankName, invoices, getFinancialYear, getBankShortForm]);
 
   useEffect(() => {
     if (generateInvoiceNumber) {
@@ -90,11 +159,8 @@ const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
     const newErrors = { ...errors };
     
     switch (name) {
-      case 'bankName':
       case 'clientFirstName':
       case 'clientLastName':
-      case 'reportMaker':
-      case 'inspectedBy':
         if (!value.trim()) {
           newErrors[name] = 'This field is required';
         } else {
@@ -146,7 +212,7 @@ const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
   }, [validateField]);
 
   const validateForm = useCallback(() => {
-    const requiredFields = ['bankName', 'clientFirstName', 'clientLastName', 'reportMaker', 'inspectedBy', 'invoiceDate'];
+    const requiredFields = ['clientFirstName', 'clientLastName', 'invoiceDate'];
     const newErrors = {};
     
     requiredFields.forEach(field => {
@@ -184,18 +250,19 @@ const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
       };
       addInvoice(invoiceToAdd);
       
+      // If not a draft and there's a selected file, mark it as completed
+      if (!isDraft && currentFile && onInvoiceSubmitted) {
+        onInvoiceSubmitted(currentFile);
+      }
+      
       setInvoice({
         invoiceNumber: '',
         invoiceDate: new Date().toISOString().split('T')[0],
-        bankName: '',
-        branchName: '',
         clientFirstName: '',
         clientMiddleName: '',
         clientLastName: '',
         clientAddress: '',
-        reportMaker: currentUser?.role === 'admin' ? '' : currentUser?.fullName || '',
-        inspectedBy: '',
-        description: '',
+        bankName: '',
         professionalFees: '',
         advance: '',
         total: 0,
@@ -216,14 +283,14 @@ const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [invoice, addInvoice, validateForm]);
+  }, [invoice, addInvoice, validateForm, currentFile, onInvoiceSubmitted]);
 
   const handleSaveAsDraft = useCallback((e) => {
     handleSubmit(e, true);
   }, [handleSubmit]);
 
   return (
-    <form onSubmit={handleSubmit} className="invoice-form">
+    <form onSubmit={handleSubmit} className="invoice-form page-transition-enter-active">
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="invoiceNumber">Invoice Number</label>
@@ -253,34 +320,6 @@ const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
         </div>
       </div>
 
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="bankName">Bank Name *</label>
-          <input
-            id="bankName"
-            type="text"
-            name="bankName"
-            placeholder="Enter bank name"
-            value={invoice.bankName}
-            onChange={handleChange}
-            className={errors.bankName ? 'error' : ''}
-            required
-          />
-          {errors.bankName && <span className="error-message">{errors.bankName}</span>}
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="branchName">Branch Name</label>
-          <input
-            id="branchName"
-            type="text"
-            name="branchName"
-            placeholder="Enter branch name"
-            value={invoice.branchName}
-            onChange={handleChange}
-          />
-        </div>
-      </div>
 
       <div className="client-information-section">
         <h3 className="section-title">Client Information</h3>
@@ -441,74 +480,112 @@ const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
       </div>
 
       <div className="project-details-section">
+        <h3 className="section-title">File Selection</h3>
         
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="reportMaker">Report Made By *</label>
-            {currentUser?.role === 'admin' ? (
-              <select
-                id="reportMaker"
-                name="reportMaker"
-                value={invoice.reportMaker}
-                onChange={handleChange}
-                className={errors.reportMaker ? 'error' : ''}
-                required
-                style={{
-                  padding: '12px',
-                  fontSize: '14px',
-                  borderRadius: '4px',
-                  border: '1px solid #ddd',
-                  backgroundColor: 'white',
-                  minHeight: '44px'
-                }}
-              >
-                <option value="">🔽 Select report maker</option>
-                {users.map(user => (
-                  <option key={user.id} value={user.fullName}>
-                    👤 {user.fullName}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                id="reportMaker"
-                type="text"
-                name="reportMaker"
-                value={currentUser?.fullName || ''}
-                readOnly
-                className="readonly-field"
-                style={{backgroundColor: '#f5f5f5', cursor: 'not-allowed'}}
-              />
-            )}
-            {errors.reportMaker && <span className="error-message">{errors.reportMaker}</span>}
+        {/* Current File - Locked/Pre-selected */}
+        <div className="form-group" style={{marginBottom: '1.5rem'}}>
+          <label htmlFor="currentFile">Current File *</label>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '12px',
+            fontSize: '14px',
+            borderRadius: '4px',
+            border: '2px solid #10b981',
+            backgroundColor: '#f0fdf4',
+            minHeight: '44px'
+          }}>
+            <span style={{color: '#059669', fontWeight: '500'}}>
+              🔒 {currentFile ? (() => {
+                // First try to find in the files array
+                let file = files.find(f => f.id === currentFile);
+                
+                // If not found in files array, use selectedFileForInvoice (newly created file)
+                if (!file && selectedFileForInvoice && selectedFileForInvoice.id === currentFile) {
+                  file = selectedFileForInvoice;
+                }
+                
+                return file ? `📁 ${file.fileNumber} - ${file.clientName || `${file.clientFirstName} ${file.clientLastName}`.trim()}` : 'No file selected';
+              })() : 'No file selected'}
+            </span>
           </div>
-          
-          <div className="form-group">
-            <label htmlFor="inspectedBy">Inspected By *</label>
-            <input
-              id="inspectedBy"
-              type="text"
-              name="inspectedBy"
-              placeholder="Enter inspector name"
-              value={invoice.inspectedBy}
-              onChange={handleChange}
-              className={errors.inspectedBy ? 'error' : ''}
-              required
-            />
-            {errors.inspectedBy && <span className="error-message">{errors.inspectedBy}</span>}
-          </div>
+          <small style={{color: '#6b7280', marginTop: '4px', display: 'block'}}>
+            This is the primary file for this invoice
+          </small>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="description">Description of Services</label>
-          <textarea
-            id="description"
-            name="description"
-            placeholder="Enter description of services provided"
-            value={invoice.description}
-            onChange={handleChange}
-            rows="4"
-          />
+        {/* Additional Files Section */}
+        {additionalFiles.length > 0 && (
+          <div style={{marginBottom: '1rem'}}>
+            <h4 style={{color: '#374151', fontSize: '16px', marginBottom: '1rem'}}>Additional Files</h4>
+            {additionalFiles.map((additionalFile, index) => (
+              <div key={index} className="form-row" style={{alignItems: 'flex-end', marginBottom: '1rem'}}>
+                <div className="form-group" style={{flex: 1}}>
+                  <label htmlFor={`additional-file-${index}`}>
+                    Additional File {index + 1}
+                  </label>
+                  <select
+                    id={`additional-file-${index}`}
+                    name={`additional-file-${index}`}
+                    value={additionalFile}
+                    onChange={(e) => updateAdditionalFile(index, e.target.value)}
+                    style={{
+                      padding: '12px',
+                      fontSize: '14px',
+                      borderRadius: '4px',
+                      border: '1px solid #ddd',
+                      backgroundColor: 'white',
+                      minHeight: '44px'
+                    }}
+                  >
+                    <option value="">🔽 Select an additional file</option>
+                    {files
+                      .filter(file => file.status === 'in-progress' && file.id !== currentFile)
+                      .map(file => (
+                        <option key={file.id} value={file.id}>
+                          📁 {file.fileNumber} - {file.clientName || `${file.clientFirstName} ${file.clientLastName}`.trim()}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={() => removeAdditionalFile(index)}
+                  style={{
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '10px 16px',
+                    marginLeft: '10px',
+                    cursor: 'pointer',
+                    minHeight: '44px'
+                  }}
+                >
+                  ✕ Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <div style={{marginTop: '1rem'}}>
+          <button
+            type="button"
+            onClick={addAdditionalFile}
+            style={{
+              backgroundColor: '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '10px 16px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            + Add Another File
+          </button>
         </div>
       </div>
 
@@ -639,11 +716,10 @@ const InvoiceForm = ({ addInvoice, invoices, currentUser }) => {
         </button>
         <button 
           type="button"
-          onClick={handleSaveAsDraft}
-          disabled={isSubmitting}
-          className="btn-secondary"
+          onClick={onBackToFiles}
+          className="back-to-files-btn"
         >
-          {isSubmitting ? 'Saving Draft...' : 'Save as Draft'}
+          ← Back to Files
         </button>
       </div>
     </form>

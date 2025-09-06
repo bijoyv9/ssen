@@ -4,6 +4,17 @@
   padding: 0;
 }
 
+/* Remove spinner arrows from number inputs */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 /* Reusable Button Styles Template */
 .btn-primary {
   background: #e0f2fe;
@@ -47,11 +58,50 @@
 }
 
 /* Page Transition Effects */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateX(-30px);
+  transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
 .main-content {
   opacity: 1;
   transform: translateY(0);
   transition: all 0.15s ease-in-out;
   min-height: calc(100vh - 120px);
+}
+
+/* Smooth component transitions */
+.file-form-page,
+.invoice-form {
+  animation: fadeInSlide 0.4s ease-out;
+}
+
+@keyframes fadeInSlide {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .main-content.transitioning {
@@ -1202,6 +1252,235 @@ main {
   letter-spacing: 0.3px;
 }
 
+/* Files Table */
+.files-table-container {
+  background: white;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.files-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  table-layout: fixed;
+}
+
+.files-table th:nth-child(1) { width: 12%; } /* File Number */
+.files-table th:nth-child(2) { width: 10%; } /* File Date */
+.files-table th:nth-child(3) { width: 20%; } /* Client Name */
+.files-table th:nth-child(4) { width: 18%; } /* Property Address */
+.files-table th:nth-child(5) { width: 8%; }  /* Type */
+.files-table th:nth-child(6) { width: 12%; } /* Status */
+.files-table th:nth-child(7) { width: 8%; }  /* Priority */
+.files-table th:nth-child(8) { width: 12%; } /* Report Maker */
+.files-table th:nth-child(9) { width: 12%; } /* Inspector */
+.files-table th:nth-child(10) { width: 8%; } /* Actions */
+
+.files-table th {
+  background: #f8f9fa;
+  padding: 1rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #e1e5e9;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.files-table th:nth-child(2),
+.files-table th:nth-child(5),
+.files-table th:nth-child(6),
+.files-table th:nth-child(7),
+.files-table th:nth-child(10) {
+  text-align: center;
+}
+
+/* Add padding to STATUS column to prevent text overflow */
+.files-table th:nth-child(6),
+.files-table td:nth-child(6) {
+  text-align: center;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.files-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #f1f3f4;
+  vertical-align: middle;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.files-table tr:hover {
+  background: #f8f9fa;
+}
+
+.files-table td:nth-child(2),
+.files-table td:nth-child(5),
+.files-table td:nth-child(6),
+.files-table td:nth-child(7),
+.files-table td:nth-child(10) {
+  text-align: center;
+}
+
+.file-type-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #e3f2fd;
+  color: #1976d2;
+  text-transform: capitalize;
+}
+
+.priority-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.edit-btn,
+.delete-btn {
+  background: none;
+  border: none;
+  padding: 0.4rem;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.edit-btn:hover {
+  background: #e3f2fd;
+}
+
+.delete-btn:hover {
+  background: #ffebee;
+}
+
+.no-files {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  background: white;
+}
+
+/* File Management Components */
+.file-management {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.file-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.file-header h2 {
+  color: #2a5298;
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.stats-cards {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex: 1;
+  min-width: 150px;
+  text-align: center;
+}
+
+.stat-card h3 {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0 0 0.5rem 0;
+  font-weight: 500;
+}
+
+.stat-card p {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  color: #333;
+}
+
+.file-filters {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  display: flex;
+  flex: 1;
+  min-width: 300px;
+}
+
+.search-box input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px 0 0 4px;
+  font-size: 0.9rem;
+}
+
+.file-search-btn {
+  padding: 0.75rem 1rem;
+  background: #2a5298;
+  color: white;
+  border: none;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.file-search-btn:hover {
+  background: #1e3c72;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.filter-controls select {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+}
+
 .actions {
   text-align: center;
 }
@@ -2297,6 +2576,21 @@ main {
   padding: 0.5rem;
 }
 
+.back-to-files-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.back-to-files-btn:hover {
+  background: #059669;
+}
+
 .close-btn {
   background: #6c757d;
   color: white;
@@ -3227,7 +3521,7 @@ main {
     gap: 0.5rem;
   }
   
-  .print-btn, .pdf-btn, .close-btn, .bank-select {
+  .print-btn, .pdf-btn, .close-btn, .back-to-files-btn, .bank-select {
     flex: 1;
     min-width: 100px;
     padding: 0.75rem 1rem;
@@ -3276,7 +3570,7 @@ main {
     flex-direction: column;
   }
   
-  .print-btn, .pdf-btn, .close-btn, .bank-select {
+  .print-btn, .pdf-btn, .close-btn, .back-to-files-btn, .bank-select {
     width: 100%;
   }
 }
@@ -3977,7 +4271,7 @@ main {
     gap: 0.25rem;
   }
 
-  .print-btn, .pdf-btn, .close-btn {
+  .print-btn, .pdf-btn, .close-btn, .back-to-files-btn {
     font-size: 0.8rem;
     padding: 0.4rem 0.8rem;
   }

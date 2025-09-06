@@ -526,6 +526,9 @@ const InvoiceGenerator = ({ invoice, onClose }) => {
                 ))}
               </select>
             )}
+            <button onClick={() => window.location.reload()} className="back-to-files-btn">
+              ← Back to Files
+            </button>
             <button onClick={onClose} className="close-btn">
               ✕ Close
             </button>

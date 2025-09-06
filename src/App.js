@@ -8,7 +8,6 @@ import UserProfile from './components/UserProfile';
 import Login from './components/Login';
 import FileForm from './components/FileForm';
 import FileManagement from './components/FileManagement';
-import FileDetails from './components/FileDetails';
 import AdvancedSearch from './components/AdvancedSearch';
 import logoImg from './assets/logo.png';
 import './App.css';
@@ -22,7 +21,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [selectedUserForEdit, setSelectedUserForEdit] = useState(null);
   const [selectedFileForEdit, setSelectedFileForEdit] = useState(null);
-  const [selectedFileForDetails, setSelectedFileForDetails] = useState(null);
+  const [selectedFileForInvoice, setSelectedFileForInvoice] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
@@ -246,21 +245,6 @@ function App() {
     handleViewTransition('createFile');
   }, [handleViewTransition]);
 
-  const handleViewFileDetails = useCallback((file) => {
-    setSelectedFileForDetails(file);
-    handleViewTransition('fileDetails');
-  }, [handleViewTransition]);
-
-  const handleAddFileNote = useCallback((fileId, note) => {
-    setFiles(prev => prev.map(file => {
-      if (file.id === fileId) {
-        const existingNotes = file.notes || '';
-        const updatedNotes = existingNotes ? `${existingNotes}\n${note}` : note;
-        return { ...file, notes: updatedNotes, updatedAt: new Date().toISOString() };
-      }
-      return file;
-    }));
-  }, []);
 
 
 
@@ -278,7 +262,7 @@ function App() {
               alt="Logo" 
               className="header-logo clickable-logo" 
               onClick={() => handleViewTransition('dashboard')}
-              title="Go to Home"
+              title="Go to Dashboard"
             />
             <h1 className="company-name">S Sen & Associates</h1>
           </div>
@@ -288,7 +272,7 @@ function App() {
               className={`nav-btn ${currentView === 'dashboard' ? 'active' : ''}`}
               onClick={() => handleViewTransition('dashboard')}
             >
-              Home
+              Dashboard
             </button>
             <button 
               className={`nav-btn ${currentView === 'advancedSearch' ? 'active' : ''}`}
@@ -342,19 +326,37 @@ function App() {
             currentUser={currentUser}
             onCreateFile={handleCreateFile}
             onViewProfile={() => handleViewTransition('profile')}
-            onViewFileDetails={handleViewFileDetails}
+            onEditFile={handleEditFile}
             onLogout={handleLogout}
           />
         ) : currentView === 'createInvoice' ? (
-          <InvoiceForm addInvoice={addInvoice} invoices={invoices} currentUser={currentUser} />
+          <InvoiceForm 
+            addInvoice={addInvoice} 
+            invoices={invoices} 
+            files={files} 
+            selectedFileForInvoice={selectedFileForInvoice} 
+            currentUser={currentUser}
+            onBackToFiles={() => {
+              setSelectedFileForEdit(selectedFileForInvoice);
+              setCurrentView('editFile');
+            }}
+            onInvoiceSubmitted={(fileId) => {
+              updateFile(fileId, { status: 'completed' });
+            }}
+          />
         ) : currentView === 'createFile' ? (
           <FileForm 
             onSave={(file) => {
               addFile(file);
-              handleViewTransition('dashboard');
+            }}
+            onUpdate={(fileId, updatedFile) => {
+              updateFile(fileId, updatedFile);
             }}
             onCancel={() => handleViewTransition('dashboard')}
-            banks={banks}
+            onGenerateInvoice={(fileData) => {
+              setSelectedFileForInvoice(fileData);
+              handleViewTransition('createInvoice');
+            }}
             files={files}
             currentUser={currentUser}
           />
@@ -362,11 +364,16 @@ function App() {
           <FileForm 
             onSave={(file) => {
               updateFile(file.id, file);
-              handleViewTransition('dashboard');
+            }}
+            onUpdate={(fileId, updatedFile) => {
+              updateFile(fileId, updatedFile);
             }}
             onCancel={() => handleViewTransition('dashboard')}
+            onGenerateInvoice={(fileData) => {
+              setSelectedFileForInvoice(fileData);
+              handleViewTransition('createInvoice');
+            }}
             editingFile={selectedFileForEdit}
-            banks={banks}
             files={files}
             currentUser={currentUser}
           />
@@ -394,7 +401,6 @@ function App() {
             onEditFile={handleEditFile}
             onCreateFile={handleCreateFile}
             currentUser={currentUser}
-            banks={banks}
           />
         ) : currentView === 'admin' && currentUser?.role === 'admin' ? (
           <AdminPanel onViewUserProfile={handleViewUserProfile} />
@@ -409,19 +415,9 @@ function App() {
             currentUser={currentUser}
             onBack={() => handleViewTransition('dashboard')}
           />
-        ) : currentView === 'fileDetails' ? (
-          <FileDetails 
-            file={selectedFileForDetails}
-            onBack={() => handleViewTransition('dashboard')}
-            onUpdate={updateFile}
-            onAddNote={handleAddFileNote}
-            onDelete={deleteFile}
-            currentUser={currentUser}
-          />
         ) : currentView === 'advancedSearch' ? (
           <AdvancedSearch
             files={files}
-            onViewFileDetails={handleViewFileDetails}
             onEditFile={handleEditFile}
             onDeleteFile={deleteFile}
             currentUser={currentUser}

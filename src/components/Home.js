@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import '../styles/home.css';
 
-const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onViewFileDetails }) => {
+const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEditFile }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [bankFilter, setBankFilter] = useState('all');
@@ -11,7 +11,7 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onVie
   const [inspectorFilter, setInspectorFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const filesPerPage = 25;
+  const filesPerPage = 15;
 
   const handleProfilePictureUpload = (event) => {
     const file = event.target.files[0];
@@ -270,7 +270,7 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onVie
               {showFilters ? 'Hide Filters' : 'Show Filters'}
             </button>
             <button className="btn-primary" onClick={onCreateFile}>
-              Start a New File
+              Start a New Report
             </button>
           </div>
         </div>
@@ -388,16 +388,16 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onVie
         <div className="file-list-container">
           <div className="file-list-header">
             <div className="header-cell file-status">STATUS</div>
-            <div className="header-cell file-number">FILE #</div>
+            <div className="header-cell file-number">REPORT #</div>
             <div className="header-cell file-date">DATE</div>
             <div className="header-cell file-client">CLIENT</div>
             <div className="header-cell file-bank">BANK</div>
             <div className="header-cell file-branch">BRANCH</div>
-            <div className="header-cell file-description">DESCRIPTION</div>
-            <div className="header-cell file-bill-amount">BILL AMOUNT</div>
             <div className="header-cell file-inspector">INSPECTOR</div>
-            <div className="header-cell file-remarks">REMARKS</div>
+            <div className="header-cell file-property-type">PROPERTY TYPE</div>
+            <div className="header-cell file-bill-amount">BILL AMOUNT</div>
             <div className="header-cell file-amount">PROPERTY VALUE</div>
+            <div className="header-cell file-remarks">REMARKS</div>
           </div>
 
           <div className="file-list-body">
@@ -412,8 +412,8 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onVie
                   <div className="file-cell file-number">
                     <strong 
                       className="clickable-file-number"
-                      onClick={() => onViewFileDetails(file)}
-                      title="Click to view file details"
+                      onClick={() => onEditFile(file)}
+                      title="Click to edit file"
                     >
                       {file.fileNumber || 'N/A'}
                     </strong>
@@ -439,18 +439,19 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onVie
                   <div className="file-cell file-branch">
                     <span className="branch-name">{file.branchName || 'N/A'}</span>
                   </div>
-                  <div className="file-cell file-description">
-                    <div className="description-text" title={file.description}>
-                      {file.description?.length > 30 
-                        ? `${file.description.substring(0, 30)}...` 
-                        : file.description || 'No description'}
+                  <div className="file-cell file-inspector">
+                    <span className="inspector-name">{file.inspectedBy || file.inspector || 'N/A'}</span>
+                  </div>
+                  <div className="file-cell file-property-type">
+                    <div className="property-type-text" title={file.propertyType}>
+                      {file.propertyType || 'N/A'}
                     </div>
                   </div>
                   <div className="file-cell file-bill-amount">
                     <span className="bill-amount-value">₹{parseFloat(file.billAmount || 0).toLocaleString('en-IN')}</span>
                   </div>
-                  <div className="file-cell file-inspector">
-                    <span className="inspector-name">{file.inspectedBy || file.inspector || 'N/A'}</span>
+                  <div className="file-cell file-amount">
+                    <span className="amount-value">₹{parseFloat(file.propertyValue || file.amount || 0).toLocaleString('en-IN')}</span>
                   </div>
                   <div className="file-cell file-remarks">
                     <div className="remarks-text" title={file.remarks}>
@@ -458,9 +459,6 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onVie
                         ? `${file.remarks.substring(0, 25)}...` 
                         : file.remarks || 'N/A'}
                     </div>
-                  </div>
-                  <div className="file-cell file-amount">
-                    <span className="amount-value">₹{parseFloat(file.propertyValue || file.amount || 0).toLocaleString('en-IN')}</span>
                   </div>
                 </div>
               ))
