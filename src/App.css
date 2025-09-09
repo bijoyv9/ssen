@@ -15,6 +15,15 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
+/* Disable scroll wheel increment/decrement on number inputs */
+input[type="number"] {
+  -webkit-appearance: textfield;
+}
+
+input[type="number"]:focus {
+  outline: none;
+}
+
 /* Reusable Button Styles Template */
 .btn-primary {
   background: #e0f2fe;
@@ -432,12 +441,11 @@ main {
 
 .project-details-section {
   margin-bottom: 2rem;
-  padding: 2rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border-left: 4px solid #8b5cf6;
+  padding: 1rem 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
 }
 
 .form-group input,
@@ -529,12 +537,11 @@ main {
 /* Financial Summary Section */
 .financial-summary-section {
   margin-bottom: 2rem;
-  padding: 2rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border-left: 4px solid #10b981;
+  padding: 1rem 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
 }
 
 .financial-title::before {
@@ -545,38 +552,39 @@ main {
 
 .gst-calculations {
   margin-top: 1.5rem;
-  padding: 1.5rem;
-  background: rgba(40, 167, 69, 0.05);
-  border-radius: 8px;
-  border: 1px solid rgba(40, 167, 69, 0.2);
+  padding: 1rem 0;
+  background: none;
+  border-radius: 0;
+  border: none;
 }
 
 .gst-field {
-  background: rgba(16, 185, 129, 0.1) !important;
-  border-color: #10b981 !important;
-  color: #10b981 !important;
+  background: #f9fafb !important;
+  border: 1px solid #e1e5e9 !important;
+  color: #495057 !important;
   font-weight: 600;
 }
 
 .total-with-gst-field {
-  background: linear-gradient(135deg, #10b981, #059669) !important;
-  color: white !important;
+  background: #f9fafb !important;
+  color: #495057 !important;
+  border: 1px solid #e1e5e9 !important;
   font-weight: 700;
   font-size: 1.1rem;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  text-shadow: none;
 }
 
 .no-gst-notice {
   margin-top: 1rem;
   padding: 1rem;
-  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-  border: 1px solid #ffc107;
-  border-radius: 8px;
+  background: none;
+  border: none;
+  border-radius: 0;
   text-align: center;
 }
 
 .no-gst-notice p {
-  color: #856404;
+  color: #374151;
   font-weight: 500;
   margin: 0;
 }
@@ -585,11 +593,9 @@ main {
 .gst-control-section {
   margin: 1.5rem 0;
   padding: 1.5rem;
-  background: linear-gradient(135deg, #ffffff 0%, #fefbf3 100%);
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border-left: 4px solid #f59e0b;
+  border: none;
+  box-shadow: none;
+  outline: none;
 }
 
 .toggle-label {
@@ -640,9 +646,9 @@ main {
 .gst-config-panel {
   margin-top: 1.5rem;
   padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 193, 7, 0.3);
+  border: none;
+  box-shadow: none;
+  outline: none;
   animation: slideDown 0.3s ease-out;
 }
 
@@ -749,23 +755,24 @@ main {
 
 .client-information-section {
   margin-bottom: 2rem;
-  padding: 2rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border-left: 4px solid #3b82f6;
+  padding: 1rem 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
 }
 
 .section-title {
-  color: #3b82f6;
-  font-size: 1.3rem;
+  color: #374151;
+  font-size: 1.1rem;
   font-weight: 600;
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 1rem 0;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #3b82f6;
+  border-bottom: none;
   display: flex;
   align-items: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .section-title::before {

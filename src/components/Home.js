@@ -1,7 +1,10 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import '../styles/home.css';
 
-const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEditFile }) => {
+// Constants moved outside component to avoid recreation on each render
+const FILES_PER_PAGE = 15;
+
+const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEditFile, onProfileUpdate, onViewInvoice }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [bankFilter, setBankFilter] = useState('all');
@@ -11,7 +14,6 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEdi
   const [inspectorFilter, setInspectorFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const filesPerPage = 15;
 
   const handleProfilePictureUpload = (event) => {
     const file = event.target.files[0];
@@ -31,11 +33,27 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEdi
         );
         localStorage.setItem('users', JSON.stringify(updatedUsers));
         
-        // Update current user state (would need to be passed from App component)
-        window.location.reload(); // Temporary solution to refresh user data
+        // Update current user state using callback from parent
+        if (onProfileUpdate) {
+          onProfileUpdate(updatedUser);
+        } else {
+          // Fallback to reload if callback not provided
+          window.location.reload();
+        }
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // Helper function to reset all filters
+  const resetFilters = () => {
+    setStatusFilter('all');
+    setBankFilter('all');
+    setBranchFilter('all');
+    setDescriptionFilter('');
+    setDateFilter('all');
+    setInspectorFilter('all');
+    setCurrentPage(1); // Reset pagination to first page
   };
 
   // Close dropdown when clicking outside
@@ -49,6 +67,11 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEdi
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showProfileDropdown]);
+
+  // Reset pagination when files change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [files]);
 
   const getTimeBasedGreeting = () => {
     const hour = new Date().getHours();
@@ -140,9 +163,9 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEdi
   }, [userSpecificFiles, statusFilter, bankFilter, branchFilter, descriptionFilter, dateFilter, inspectorFilter]);
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredAndSortedFiles.length / filesPerPage);
-  const startIndex = (currentPage - 1) * filesPerPage;
-  const endIndex = startIndex + filesPerPage;
+  const totalPages = Math.ceil(filteredAndSortedFiles.length / FILES_PER_PAGE);
+  const startIndex = (currentPage - 1) * FILES_PER_PAGE;
+  const endIndex = startIndex + FILES_PER_PAGE;
   const currentFiles = filteredAndSortedFiles.slice(startIndex, endIndex);
 
   // Reset to page 1 when filters change
@@ -170,12 +193,14 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEdi
             className="profile-text"
             onClick={() => setShowProfileDropdown(!showProfileDropdown)}
           >
-            <label className="profile-avatar clickable-avatar">
+            <label className="profile-avatar clickable-avatar" htmlFor="profile-picture-upload">
               <input
+                id="profile-picture-upload"
                 type="file"
                 accept="image/*"
                 onChange={handleProfilePictureUpload}
                 style={{ display: 'none' }}
+                aria-label="Upload profile picture"
               />
               {currentUser?.profilePicture ? (
                 <img src={currentUser.profilePicture} alt="Profile" className="profile-image" />
@@ -279,11 +304,13 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEdi
         <div className={`file-controls ${showFilters ? 'filters-open' : 'filters-closed'}`}>
           <div className="filter-row">
             <div className="filter-control">
-              <label className="filter-label">Status:</label>
+              <label className="filter-label" htmlFor="status-filter">Status:</label>
               <select
+                id="status-filter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="filter-select"
+                aria-label="Filter files by status"
               >
                 <option value="all">All Status</option>
                 <option value="in-progress">In Progress</option>
@@ -295,11 +322,13 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEdi
             </div>
             
             <div className="filter-control">
-              <label className="filter-label">Bank:</label>
+              <label className="filter-label" htmlFor="bank-filter">Bank:</label>
               <select
+                id="bank-filter"
                 value={bankFilter}
                 onChange={(e) => setBankFilter(e.target.value)}
                 className="filter-select"
+                aria-label="Filter files by bank"
               >
                 <option value="all">All Banks</option>
                 {uniqueBanks.map(bank => (
@@ -309,11 +338,13 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEdi
             </div>
             
             <div className="filter-control">
-              <label className="filter-label">Branch:</label>
+              <label className="filter-label" htmlFor="branch-filter">Branch:</label>
               <select
+                id="branch-filter"
                 value={branchFilter}
                 onChange={(e) => setBranchFilter(e.target.value)}
                 className="filter-select"
+                aria-label="Filter files by branch"
               >
                 <option value="all">All Branches</option>
                 {uniqueBranches.map(branch => (
@@ -323,11 +354,13 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEdi
             </div>
             
             <div className="filter-control">
-              <label className="filter-label">Date:</label>
+              <label className="filter-label" htmlFor="date-filter">Date:</label>
               <select
+                id="date-filter"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
                 className="filter-select"
+                aria-label="Filter files by date"
               >
                 <option value="all">All Time</option>
                 <option value="today">Today</option>
@@ -337,11 +370,13 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEdi
             </div>
             
             <div className="filter-control">
-              <label className="filter-label">Inspector:</label>
+              <label className="filter-label" htmlFor="inspector-filter">Inspector:</label>
               <select
+                id="inspector-filter"
                 value={inspectorFilter}
                 onChange={(e) => setInspectorFilter(e.target.value)}
                 className="filter-select"
+                aria-label="Filter files by inspector"
               >
                 <option value="all">All Inspectors</option>
                 {uniqueInspectors.map(inspector => (
@@ -351,28 +386,24 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEdi
             </div>
             
             <div className="filter-control">
-              <label className="filter-label">Description:</label>
+              <label className="filter-label" htmlFor="description-filter">Description:</label>
               <input
+                id="description-filter"
                 type="text"
                 placeholder="Filter by description..."
                 value={descriptionFilter}
                 onChange={(e) => setDescriptionFilter(e.target.value)}
                 className="filter-input"
+                aria-label="Filter files by description"
               />
             </div>
             
             <div className="filter-control clear-filters">
               <label className="filter-label" style={{visibility: 'hidden'}}>Clear:</label>
               <button 
-                onClick={() => {
-                  setStatusFilter('all');
-                  setBankFilter('all');
-                  setBranchFilter('all');
-                  setDescriptionFilter('');
-                  setDateFilter('all');
-                  setInspectorFilter('all');
-                }}
+                onClick={resetFilters}
                 className="clear-filters-btn"
+                aria-label="Clear all active filters"
               >
                 Clear All Filters
               </button>
@@ -412,8 +443,16 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEdi
                   <div className="file-cell file-number">
                     <strong 
                       className="clickable-file-number"
-                      onClick={() => onEditFile(file)}
-                      title="Click to edit file"
+                      onClick={() => {
+                        if (file.status === 'completed' && file.invoiceAmount) {
+                          // For completed files with invoice, show invoice details
+                          onViewInvoice?.(file);
+                        } else {
+                          // For other files, edit the file
+                          onEditFile(file);
+                        }
+                      }}
+                      title={file.status === 'completed' && file.invoiceAmount ? "Click to view invoice details" : "Click to edit file"}
                     >
                       {file.fileNumber || 'N/A'}
                     </strong>
@@ -462,7 +501,39 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEdi
                   </div>
                 </div>
               ))
-            ) : null}
+            ) : (
+              <div className="empty-state">
+                <div className="empty-state-content">
+                  {filteredAndSortedFiles.length === 0 && userSpecificFiles.length > 0 ? (
+                    // No files match current filters
+                    <>
+                      <div className="empty-state-icon">🔍</div>
+                      <h3>No files match your filters</h3>
+                      <p>Try adjusting your filter criteria or clearing all filters to see more results.</p>
+                      <button 
+                        onClick={resetFilters}
+                        className="reset-filters-btn"
+                        aria-label="Clear all filters to show all files"
+                      >
+                        Clear All Filters
+                      </button>
+                    </>
+                  ) : (
+                    // No files exist at all
+                    <>
+                      <div className="empty-state-icon">📄</div>
+                      <h3>No files found</h3>
+                      <p>
+                        {currentUser?.role === 'admin' 
+                          ? "No files have been created yet."
+                          : "You haven't created any files yet."
+                        }
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Pagination Controls */}
@@ -472,36 +543,54 @@ const Home = ({ files, currentUser, onCreateFile, onViewProfile, onLogout, onEdi
                 className="pagination-btn"
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
+                aria-label="Go to previous page"
               >
                 ← Previous
               </button>
               
               <div className="pagination-numbers">
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(page => 
-                    page === 1 || 
-                    page === totalPages || 
-                    Math.abs(page - currentPage) <= 2
-                  )
-                  .map((page, index, arr) => (
-                    <React.Fragment key={page}>
-                      {index > 0 && arr[index - 1] !== page - 1 && (
-                        <span className="pagination-ellipsis">...</span>
-                      )}
-                      <button
-                        className={`pagination-number ${page === currentPage ? 'active' : ''}`}
-                        onClick={() => setCurrentPage(page)}
-                      >
-                        {page}
-                      </button>
-                    </React.Fragment>
-                  ))}
+                {totalPages <= 5 ? (
+                  // Show all pages if 5 or fewer
+                  Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      className={`pagination-number ${page === currentPage ? 'active' : ''}`}
+                      onClick={() => setCurrentPage(page)}
+                      aria-label={`Go to page ${page}`}
+                    >
+                      {page}
+                    </button>
+                  ))
+                ) : (
+                  // Show ellipses only when more than 5 pages
+                  Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(page => 
+                      page === 1 || 
+                      page === totalPages || 
+                      Math.abs(page - currentPage) <= 2
+                    )
+                    .map((page, index, arr) => (
+                      <React.Fragment key={page}>
+                        {index > 0 && arr[index - 1] !== page - 1 && (
+                          <span className="pagination-ellipsis" aria-hidden="true">...</span>
+                        )}
+                        <button
+                          className={`pagination-number ${page === currentPage ? 'active' : ''}`}
+                          onClick={() => setCurrentPage(page)}
+                          aria-label={`Go to page ${page}`}
+                        >
+                          {page}
+                        </button>
+                      </React.Fragment>
+                    ))
+                )}
               </div>
               
               <button 
                 className="pagination-btn"
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
+                aria-label="Go to next page"
               >
                 Next →
               </button>

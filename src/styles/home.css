@@ -576,6 +576,18 @@
   text-align: center;
 }
 
+/* Invoice amount display */
+.invoice-amount {
+  font-size: 0.75rem;
+  color: #10b981;
+  font-weight: 600;
+  margin-top: 0.25rem;
+  padding: 2px 6px;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 4px;
+  display: inline-block;
+}
+
 .status-badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;

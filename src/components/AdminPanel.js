@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { ROLES, ROLE_OPTIONS } from '../constants/roles';
+
+// Helper function to get default new user object
+const getDefaultNewUser = () => ({
+  username: '',
+  password: '',
+  fullName: '',
+  email: '',
+  phone: '',
+  address: '',
+  role: ROLES.COMPUTER_OPERATOR
+});
 
 const AdminPanel = ({ onViewUserProfile }) => {
   const [users, setUsers] = useState([]);
   const [showAddUser, setShowAddUser] = useState(false);
-  const [newUser, setNewUser] = useState({
-    username: '',
-    password: '',
-    fullName: '',
-    email: '',
-    phone: '',
-    address: '',
-    role: 'computer-operator'
-  });
+  const [newUser, setNewUser] = useState(getDefaultNewUser());
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -19,6 +23,22 @@ const AdminPanel = ({ onViewUserProfile }) => {
     const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
     setUsers(storedUsers);
   }, []);
+
+  // Handle ESC key press to close modal
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && showAddUser) {
+        setShowAddUser(false);
+        setNewUser(getDefaultNewUser());
+        setErrors({});
+      }
+    };
+
+    if (showAddUser) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [showAddUser]);
 
   const saveUsers = useCallback((updatedUsers) => {
     localStorage.setItem('users', JSON.stringify(updatedUsers));
@@ -28,20 +48,44 @@ const AdminPanel = ({ onViewUserProfile }) => {
   const validateUser = (user) => {
     const newErrors = {};
     
+    // Username validation
     if (!user.username.trim()) {
       newErrors.username = 'Username is required';
     } else if (users.some(u => u.username === user.username && u.id !== user.id)) {
       newErrors.username = 'Username already exists';
     }
     
+    // Password validation
     if (!user.password.trim()) {
       newErrors.password = 'Password is required';
     } else if (user.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
     
+    // Full name validation
     if (!user.fullName.trim()) {
       newErrors.fullName = 'Full name is required';
+    }
+    
+    // Email validation (optional but if provided, must be valid)
+    if (user.email && user.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(user.email.trim())) {
+        newErrors.email = 'Please enter a valid email address';
+      }
+    }
+    
+    // Phone validation (optional but if provided, must be valid)
+    if (user.phone && user.phone.trim()) {
+      const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
+      if (!phoneRegex.test(user.phone.trim())) {
+        newErrors.phone = 'Please enter a valid phone number';
+      }
+    }
+    
+    // Role validation
+    if (!user.role || !ROLE_OPTIONS.some(option => option.value === user.role)) {
+      newErrors.role = 'Please select a valid role';
     }
     
     return newErrors;
@@ -65,7 +109,7 @@ const AdminPanel = ({ onViewUserProfile }) => {
     const updatedUsers = [...users, user];
     saveUsers(updatedUsers);
     
-    setNewUser({ username: '', password: '', fullName: '', role: 'user' });
+    setNewUser(getDefaultNewUser());
     setShowAddUser(false);
     setErrors({});
   };
@@ -84,6 +128,13 @@ const AdminPanel = ({ onViewUserProfile }) => {
     saveUsers(updatedUsers);
   };
 
+  // Function to handle modal dismissal
+  const handleModalDismiss = useCallback(() => {
+    setShowAddUser(false);
+    setNewUser(getDefaultNewUser());
+    setErrors({});
+  }, []);
+
   return (
     <div className="admin-panel">
       <div className="admin-header">
@@ -98,17 +149,13 @@ const AdminPanel = ({ onViewUserProfile }) => {
 
       {/* Add User Modal */}
       {showAddUser && (
-        <div className="modal-overlay">
-          <div className="modal-container">
+        <div className="modal-overlay" onClick={handleModalDismiss}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Add New User</h3>
               <button 
                 className="close-modal-btn"
-                onClick={() => {
-                  setShowAddUser(false);
-                  setErrors({});
-                  setNewUser({ username: '', password: '', fullName: '', role: 'user' });
-                }}
+                onClick={handleModalDismiss}
               >
                 ✕
               </button>
@@ -123,8 +170,10 @@ const AdminPanel = ({ onViewUserProfile }) => {
                   value={newUser.fullName}
                   onChange={(e) => setNewUser({...newUser, fullName: e.target.value})}
                   className={errors.fullName ? 'error' : ''}
+                  aria-invalid={!!errors.fullName}
+                  aria-describedby={errors.fullName ? "fullName-error" : undefined}
                 />
-                {errors.fullName && <span className="error-message">{errors.fullName}</span>}
+                {errors.fullName && <span id="fullName-error" className="error-message">{errors.fullName}</span>}
               </div>
               
               <div className="form-group">
@@ -135,8 +184,10 @@ const AdminPanel = ({ onViewUserProfile }) => {
                   value={newUser.username}
                   onChange={(e) => setNewUser({...newUser, username: e.target.value})}
                   className={errors.username ? 'error' : ''}
+                  aria-invalid={!!errors.username}
+                  aria-describedby={errors.username ? "username-error" : undefined}
                 />
-                {errors.username && <span className="error-message">{errors.username}</span>}
+                {errors.username && <span id="username-error" className="error-message">{errors.username}</span>}
               </div>
               
               <div className="form-group">
@@ -147,8 +198,10 @@ const AdminPanel = ({ onViewUserProfile }) => {
                   value={newUser.password}
                   onChange={(e) => setNewUser({...newUser, password: e.target.value})}
                   className={errors.password ? 'error' : ''}
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? "password-error" : undefined}
                 />
-                {errors.password && <span className="error-message">{errors.password}</span>}
+                {errors.password && <span id="password-error" className="error-message">{errors.password}</span>}
               </div>
               
               <div className="form-group">
@@ -159,7 +212,11 @@ const AdminPanel = ({ onViewUserProfile }) => {
                   placeholder="user@example.com"
                   value={newUser.email}
                   onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  className={errors.email ? 'error' : ''}
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? "email-error" : undefined}
                 />
+                {errors.email && <span id="email-error" className="error-message">{errors.email}</span>}
               </div>
               
               <div className="form-group">
@@ -170,7 +227,11 @@ const AdminPanel = ({ onViewUserProfile }) => {
                   placeholder="+91 98765 43210"
                   value={newUser.phone}
                   onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
+                  className={errors.phone ? 'error' : ''}
+                  aria-invalid={!!errors.phone}
+                  aria-describedby={errors.phone ? "phone-error" : undefined}
                 />
+                {errors.phone && <span id="phone-error" className="error-message">{errors.phone}</span>}
               </div>
               
               <div className="form-group">
@@ -190,11 +251,17 @@ const AdminPanel = ({ onViewUserProfile }) => {
                   id="role"
                   value={newUser.role}
                   onChange={(e) => setNewUser({...newUser, role: e.target.value})}
+                  className={errors.role ? 'error' : ''}
+                  aria-invalid={!!errors.role}
+                  aria-describedby={errors.role ? "role-error" : undefined}
                 >
-                  <option value="computer-operator">Computer Operator</option>
-                  <option value="inspector">Inspector</option>
-                  <option value="admin">Admin</option>
+                  {ROLE_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
+                {errors.role && <span id="role-error" className="error-message">{errors.role}</span>}
               </div>
               
               <div className="form-actions">
@@ -204,11 +271,7 @@ const AdminPanel = ({ onViewUserProfile }) => {
                 <button 
                   type="button" 
                   className="cancel-btn"
-                  onClick={() => {
-                    setShowAddUser(false);
-                    setErrors({});
-                    setNewUser({ username: '', password: '', fullName: '', email: '', phone: '', address: '', role: 'user' });
-                  }}
+                  onClick={handleModalDismiss}
                 >
                   Cancel
                 </button>

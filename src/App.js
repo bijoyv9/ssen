@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Home from './components/Home';
 import InvoiceForm from './components/InvoiceForm';
 import InvoiceManagement from './components/InvoiceManagement';
+import InvoiceDetails from './components/InvoiceDetails';
 import BankManagement from './components/BankManagement';
 import AdminPanel from './components/AdminPanel';
 import UserProfile from './components/UserProfile';
@@ -10,6 +11,8 @@ import FileForm from './components/FileForm';
 import FileManagement from './components/FileManagement';
 import AdvancedSearch from './components/AdvancedSearch';
 import logoImg from './assets/logo.png';
+import { ROLES, hasAdminAccess, hasComputerOperatorAccess } from './constants/roles';
+import { getParsedLocalStorage, setLocalStorage, getStorageVersion } from './utils/localStorage';
 import './App.css';
 
 function App() {
@@ -22,8 +25,14 @@ function App() {
   const [selectedUserForEdit, setSelectedUserForEdit] = useState(null);
   const [selectedFileForEdit, setSelectedFileForEdit] = useState(null);
   const [selectedFileForInvoice, setSelectedFileForInvoice] = useState(null);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  
+  // Version tracking for optimized change detection
+  const [invoicesVersion, setInvoicesVersion] = useState(0);
+  const [banksVersion, setBanksVersion] = useState(0);
+  const [filesVersion, setFilesVersion] = useState(0);
 
   useEffect(() => {
     // Check for existing session
@@ -39,45 +48,52 @@ function App() {
       }
     }
 
-    try {
-      const storedInvoices = localStorage.getItem('invoices');
-      if (storedInvoices) {
-        const parsedInvoices = JSON.parse(storedInvoices);
-        if (Array.isArray(parsedInvoices)) {
-          setInvoices(parsedInvoices);
-        }
-      }
+    // Load initial data using utility functions
+    const loadedInvoices = getParsedLocalStorage('invoices', []);
+    const loadedBanks = getParsedLocalStorage('banks', []);
+    const loadedFiles = getParsedLocalStorage('files', []);
+    
+    setInvoices(loadedInvoices);
+    setBanks(loadedBanks);
+    setFiles(loadedFiles);
+    
+    // Initialize version tracking
+    setInvoicesVersion(getStorageVersion('invoices'));
+    setBanksVersion(getStorageVersion('banks'));
+    setFilesVersion(getStorageVersion('files'));
 
-      const storedBanks = localStorage.getItem('banks');
-      if (storedBanks) {
-        const parsedBanks = JSON.parse(storedBanks);
-        if (Array.isArray(parsedBanks)) {
-          setBanks(parsedBanks);
-        }
+    // Disable scroll wheel increment/decrement on number inputs
+    const preventNumberInputScroll = (e) => {
+      if (e.target.type === 'number' && e.target.matches(':focus')) {
+        e.preventDefault();
       }
+    };
 
-      const storedFiles = localStorage.getItem('files');
-      if (storedFiles) {
-        const parsedFiles = JSON.parse(storedFiles);
-        if (Array.isArray(parsedFiles)) {
-          setFiles(parsedFiles);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load data from localStorage:', error);
-      setInvoices([]);
-      setBanks([]);
-      setFiles([]);
-    }
+    document.addEventListener('wheel', preventNumberInputScroll, { passive: false });
+
+    return () => {
+      document.removeEventListener('wheel', preventNumberInputScroll);
+    };
   }, []);
 
+  // Save data to localStorage with version tracking
   useEffect(() => {
-    try {
-      localStorage.setItem('invoices', JSON.stringify(invoices));
-    } catch (error) {
-      console.error('Failed to save invoices to localStorage:', error);
+    if (setLocalStorage('invoices', invoices)) {
+      setInvoicesVersion(getStorageVersion('invoices'));
     }
   }, [invoices]);
+
+  useEffect(() => {
+    if (setLocalStorage('banks', banks)) {
+      setBanksVersion(getStorageVersion('banks'));
+    }
+  }, [banks]);
+
+  useEffect(() => {
+    if (setLocalStorage('files', files)) {
+      setFilesVersion(getStorageVersion('files'));
+    }
+  }, [files]);
 
   // Real-time updates: Listen for localStorage changes from other tabs
   useEffect(() => {
@@ -100,43 +116,35 @@ function App() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Real-time updates: Periodic polling for changes
+  // Version-based change detection for multi-tab sync
   useEffect(() => {
     const pollForUpdates = () => {
-      try {
-        const storedInvoices = localStorage.getItem('invoices');
-        if (storedInvoices) {
-          const parsedInvoices = JSON.parse(storedInvoices);
-          if (Array.isArray(parsedInvoices) && JSON.stringify(parsedInvoices) !== JSON.stringify(invoices)) {
-            setInvoices(parsedInvoices);
-          }
-        }
-      } catch (error) {
-        console.error('Polling error:', error);
+      const currentInvoicesVersion = getStorageVersion('invoices');
+      const currentBanksVersion = getStorageVersion('banks');
+      const currentFilesVersion = getStorageVersion('files');
+      
+      if (currentInvoicesVersion > invoicesVersion) {
+        const loadedInvoices = getParsedLocalStorage('invoices', []);
+        setInvoices(loadedInvoices);
+        setInvoicesVersion(currentInvoicesVersion);
+      }
+      
+      if (currentBanksVersion > banksVersion) {
+        const loadedBanks = getParsedLocalStorage('banks', []);
+        setBanks(loadedBanks);
+        setBanksVersion(currentBanksVersion);
+      }
+      
+      if (currentFilesVersion > filesVersion) {
+        const loadedFiles = getParsedLocalStorage('files', []);
+        setFiles(loadedFiles);
+        setFilesVersion(currentFilesVersion);
       }
     };
 
-    const interval = setInterval(pollForUpdates, 5000); // Poll every 5 seconds
+    const interval = setInterval(pollForUpdates, 5000);
     return () => clearInterval(interval);
-  }, [invoices]);
-
-
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('banks', JSON.stringify(banks));
-    } catch (error) {
-      console.error('Failed to save banks to localStorage:', error);
-    }
-  }, [banks]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('files', JSON.stringify(files));
-    } catch (error) {
-      console.error('Failed to save files to localStorage:', error);
-    }
-  }, [files]);
+  }, [invoicesVersion, banksVersion, filesVersion]);
 
   const handleLogin = useCallback((user) => {
     setCurrentUser(user);
@@ -194,8 +202,8 @@ function App() {
     const date = new Date().toLocaleDateString('en-GB');
     const fileWithId = {
       ...file,
-      id: Date.now() + Math.random(),
-      createdAt: new Date().toISOString(),
+      id: file.id || (Date.now() + Math.random()), // Preserve existing ID or generate new one
+      createdAt: file.createdAt || new Date().toISOString(),
       createdBy: currentUser?.id || 'unknown',
       createdByName: currentUser?.fullName || 'Unknown User',
       notes: file.notes ? `${file.notes}\n\n${date} - ${userName} created file ${file.fileNumber} for ₹${parseFloat(file.amount || 0).toLocaleString('en-IN')}` : `${date} - ${userName} created file ${file.fileNumber} for ₹${parseFloat(file.amount || 0).toLocaleString('en-IN')}`
@@ -204,9 +212,18 @@ function App() {
   }, [currentUser]);
 
   const updateFile = useCallback((fileId, updatedFile) => {
-    setFiles(prev => prev.map(file => 
-      file.id === fileId ? updatedFile : file
-    ));
+    console.log('updateFile called with:', { fileId, updatedFile });
+    setFiles(prev => {
+      const fileExists = prev.find(f => f.id === fileId);
+      console.log('File exists in array:', !!fileExists);
+      console.log('Total files in array:', prev.length);
+      if (!fileExists) {
+        console.log('Available file IDs:', prev.map(f => f.id));
+      }
+      return prev.map(file => 
+        file.id === fileId ? { ...file, ...updatedFile } : file
+      );
+    });
   }, []);
 
   const deleteFile = useCallback((fileId) => {
@@ -245,6 +262,170 @@ function App() {
     handleViewTransition('createFile');
   }, [handleViewTransition]);
 
+  // Helper function to render main content
+  const renderMainContent = useCallback(() => {
+    switch (currentView) {
+      case 'dashboard':
+        return (
+          <Home 
+            files={files}
+            currentUser={currentUser}
+            onCreateFile={handleCreateFile}
+            onViewProfile={() => handleViewTransition('profile')}
+            onEditFile={handleEditFile}
+            onLogout={handleLogout}
+            onProfileUpdate={setCurrentUser}
+            onViewInvoice={(file) => {
+              // Find the invoice for this file and show invoice details
+              const fileInvoice = invoices.find(inv => 
+                inv.currentFile?.id === file.id || 
+                inv.additionalFiles?.some(af => af.id === file.id)
+              );
+              if (fileInvoice) {
+                setSelectedInvoice(fileInvoice);
+                handleViewTransition('viewInvoice');
+              }
+            }}
+          />
+        );
+      
+      case 'createInvoice':
+        return (
+          <InvoiceForm 
+            addInvoice={addInvoice} 
+            invoices={invoices} 
+            files={files} 
+            selectedFileForInvoice={selectedFileForInvoice} 
+            currentUser={currentUser}
+            onBackToFiles={() => {
+              setSelectedFileForEdit(selectedFileForInvoice);
+              setCurrentView('editFile');
+            }}
+            onInvoiceSubmitted={(fileId, invoiceAmount) => {
+              updateFile(fileId, { 
+                status: 'completed',
+                invoiceAmount: invoiceAmount,
+                billAmount: invoiceAmount,
+                completedAt: new Date().toISOString()
+              });
+            }}
+          />
+        );
+      
+      case 'createFile':
+        return (
+          <FileForm 
+            onSave={(file) => {
+              addFile(file);
+            }}
+            onUpdate={(fileId, updatedFile) => {
+              updateFile(fileId, updatedFile);
+            }}
+            onCancel={() => handleViewTransition('dashboard')}
+            onGenerateInvoice={(fileData) => {
+              setSelectedFileForInvoice(fileData);
+              handleViewTransition('createInvoice');
+            }}
+            files={files}
+            currentUser={currentUser}
+          />
+        );
+      
+      case 'editFile':
+        return (
+          <FileForm 
+            onSave={(file) => {
+              updateFile(file.id, file);
+            }}
+            onUpdate={(fileId, updatedFile) => {
+              updateFile(fileId, updatedFile);
+            }}
+            onCancel={() => handleViewTransition('dashboard')}
+            onGenerateInvoice={(fileData) => {
+              setSelectedFileForInvoice(fileData);
+              handleViewTransition('createInvoice');
+            }}
+            editingFile={selectedFileForEdit}
+            files={files}
+            currentUser={currentUser}
+          />
+        );
+      
+      case 'management':
+        return hasAdminAccess(currentUser) ? (
+          <InvoiceManagement 
+            invoices={invoices} 
+            currentUser={currentUser}
+            updateInvoice={updateInvoice}
+            deleteInvoice={deleteInvoice}
+          />
+        ) : <div>Access Denied</div>;
+      
+      case 'banks':
+        return hasComputerOperatorAccess(currentUser) ? (
+          <BankManagement 
+            banks={banks} 
+            addBank={addBank}
+            updateBank={updateBank} 
+            deleteBank={deleteBank}
+            currentUser={currentUser}
+          />
+        ) : <div>Access Denied</div>;
+      
+      case 'search':
+        return (
+          <AdvancedSearch 
+            files={files}
+            currentUser={currentUser}
+            onEditFile={handleEditFile}
+          />
+        );
+      
+      case 'admin':
+        return hasAdminAccess(currentUser) ? (
+          <AdminPanel 
+            currentUser={currentUser}
+            onEditUser={handleViewUserProfile}
+          />
+        ) : <div>Access Denied</div>;
+      
+      case 'userEdit':
+        return hasAdminAccess(currentUser) ? (
+          <UserProfile 
+            currentUser={currentUser}
+            editingUser={selectedUserForEdit}
+            onCancel={() => handleViewTransition('admin')}
+            onUserUpdated={() => handleViewTransition('admin')}
+          />
+        ) : <div>Access Denied</div>;
+      
+      case 'profile':
+        return (
+          <UserProfile 
+            currentUser={currentUser}
+            onCancel={() => handleViewTransition('dashboard')}
+          />
+        );
+      
+      case 'viewInvoice':
+        return (
+          <InvoiceDetails 
+            invoice={selectedInvoice}
+            onBack={() => handleViewTransition('dashboard')}
+          />
+        );
+      
+      default:
+        return <div>Access Denied</div>;
+    }
+  }, [
+    currentView, files, currentUser, invoices, selectedFileForInvoice, 
+    selectedFileForEdit, selectedUserForEdit, banks, handleCreateFile, 
+    handleViewTransition, handleEditFile, handleLogout, addInvoice, 
+    updateFile, addFile, updateInvoice, deleteInvoice, addBank, 
+    updateBank, deleteBank, handleViewUserProfile
+  ]);
+
 
 
 
@@ -281,7 +462,7 @@ function App() {
             >
               Find a File
             </button>
-            {currentUser?.role === 'admin' && (
+            {hasAdminAccess(currentUser) && (
               <button 
                 className={`nav-btn ${currentView === 'management' ? 'active' : ''}`}
                 onClick={() => handleViewTransition('management')}
@@ -289,7 +470,7 @@ function App() {
                 Accounting
               </button>
             )}
-            {(currentUser?.role === 'admin' || currentUser?.role === 'computer-operator') && (
+            {hasComputerOperatorAccess(currentUser) && (
               <button 
                 className={`nav-btn ${currentView === 'banks' ? 'active' : ''}`}
                 onClick={() => handleViewTransition('banks')}
@@ -297,7 +478,7 @@ function App() {
                 Bank Accounts
               </button>
             )}
-            {currentUser?.role === 'admin' && (
+            {hasAdminAccess(currentUser) && (
               <button 
                 className={`nav-btn ${currentView === 'admin' ? 'active' : ''}`}
                 onClick={() => handleViewTransition('admin')}
@@ -328,6 +509,17 @@ function App() {
             onViewProfile={() => handleViewTransition('profile')}
             onEditFile={handleEditFile}
             onLogout={handleLogout}
+            onViewInvoice={(file) => {
+              // Find the invoice for this file and show invoice details
+              const fileInvoice = invoices.find(inv => 
+                inv.currentFile?.id === file.id || 
+                inv.additionalFiles?.some(af => af.id === file.id)
+              );
+              if (fileInvoice) {
+                setSelectedInvoice(fileInvoice);
+                handleViewTransition('viewInvoice');
+              }
+            }}
           />
         ) : currentView === 'createInvoice' ? (
           <InvoiceForm 
@@ -340,8 +532,13 @@ function App() {
               setSelectedFileForEdit(selectedFileForInvoice);
               setCurrentView('editFile');
             }}
-            onInvoiceSubmitted={(fileId) => {
-              updateFile(fileId, { status: 'completed' });
+            onInvoiceSubmitted={(fileId, invoiceAmount) => {
+              updateFile(fileId, { 
+                status: 'completed',
+                invoiceAmount: invoiceAmount,
+                billAmount: invoiceAmount,
+                completedAt: new Date().toISOString()
+              });
             }}
           />
         ) : currentView === 'createFile' ? (
@@ -421,6 +618,11 @@ function App() {
             onEditFile={handleEditFile}
             onDeleteFile={deleteFile}
             currentUser={currentUser}
+          />
+        ) : currentView === 'viewInvoice' ? (
+          <InvoiceDetails 
+            invoice={selectedInvoice}
+            onBack={() => handleViewTransition('dashboard')}
           />
         ) : (
           <div>Access Denied</div>

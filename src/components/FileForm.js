@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { ROLES } from '../constants/roles';
 import '../styles/file-form.css';
 
 const FileForm = ({ onSave, onUpdate, onCancel, onGenerateInvoice, editingFile, files = [], currentUser }) => {
@@ -232,8 +233,8 @@ const FileForm = ({ onSave, onUpdate, onCancel, onGenerateInvoice, editingFile, 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!formData.clientFirstName || !formData.clientLastName || !formData.description || !formData.propertyValue) {
-      alert('Please fill in all required fields');
+    if (!formData.clientFirstName || !formData.clientLastName || !formData.description || !formData.propertyValue || !formData.madeBy || !formData.inspectedBy) {
+      alert('Please fill in all required fields (including Inspector and Report Maker)');
       return;
     }
 
@@ -265,19 +266,34 @@ const FileForm = ({ onSave, onUpdate, onCancel, onGenerateInvoice, editingFile, 
   };
 
   const handleGenerateInvoice = useCallback(() => {
-    if (!formData.clientFirstName || !formData.clientLastName || !formData.description || !formData.propertyValue) {
-      alert('Please fill in all required fields before generating invoice');
+    if (!formData.clientFirstName || !formData.clientLastName || !formData.description || !formData.propertyValue || !formData.madeBy || !formData.inspectedBy) {
+      alert('Please fill in all required fields (including Inspector and Report Maker) before generating invoice');
       return;
     }
 
     const fileData = createFileData();
-    onSave(fileData); // Auto-save the file
+    
+    // Save/update the file using the same logic as handleSubmit
+    if (currentEditingFile) {
+      // We're in edit mode, call onUpdate if available, otherwise onSave
+      if (onUpdate) {
+        onUpdate(fileData.id, fileData);
+      } else {
+        onSave(fileData);
+      }
+    } else {
+      // We're in create mode, call onSave
+      onSave(fileData);
+      // Switch to edit mode after first successful save
+      setCurrentEditingFile(fileData);
+    }
+    
     onGenerateInvoice(fileData); // Navigate to invoice creation with the file data
-  }, [formData, createFileData, onSave, onGenerateInvoice]);
+  }, [formData, createFileData, onSave, onGenerateInvoice, currentEditingFile, onUpdate, setCurrentEditingFile]);
 
   const handleStatusUpdate = useCallback((newStatus) => {
-    if (!formData.clientFirstName || !formData.clientLastName || !formData.description || !formData.propertyValue) {
-      alert('Please fill in all required fields before updating status');
+    if (!formData.clientFirstName || !formData.clientLastName || !formData.description || !formData.propertyValue || !formData.madeBy || !formData.inspectedBy) {
+      alert('Please fill in all required fields (including Inspector and Report Maker) before updating status');
       return;
     }
 
@@ -420,8 +436,8 @@ const FileForm = ({ onSave, onUpdate, onCancel, onGenerateInvoice, editingFile, 
                   name="clientEmail"
                   value={formData.clientEmail}
                   onChange={handleInputChange}
-                  style={{ textTransform: 'uppercase' }}
-                  placeholder="EMAIL ADDRESS"
+                  style={{ textTransform: 'lowercase' }}
+                  placeholder="email address"
                 />
               </div>
             </div>
@@ -510,14 +526,32 @@ const FileForm = ({ onSave, onUpdate, onCancel, onGenerateInvoice, editingFile, 
             <div className="form-row">
               <div className="form-group">
                 <label>Made By *</label>
-                <input
-                  type="text"
-                  name="madeBy"
-                  value={formData.madeBy}
-                  readOnly
-                  className="readonly-field"
-                  style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', textTransform: 'uppercase' }}
-                />
+                {currentUser?.role === ROLES.ADMIN ? (
+                  <select
+                    name="madeBy"
+                    value={formData.madeBy}
+                    onChange={handleInputChange}
+                    style={{ textTransform: 'uppercase' }}
+                    required
+                  >
+                    <option value="">Select Report Maker</option>
+                    {users.map(user => (
+                      <option key={user.id} value={user.fullName}>
+                        {user.fullName}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    name="madeBy"
+                    value={formData.madeBy}
+                    readOnly
+                    className="readonly-field"
+                    style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', textTransform: 'uppercase' }}
+                    required
+                  />
+                )}
               </div>
               <div className="form-group">
                 <label>Inspected By</label>
@@ -526,10 +560,10 @@ const FileForm = ({ onSave, onUpdate, onCancel, onGenerateInvoice, editingFile, 
                   value={formData.inspectedBy}
                   onChange={handleInputChange}
                   style={{ textTransform: 'uppercase' }}
+                  required
                 >
                   <option value="">SELECT INSPECTOR</option>
                   {users
-                    .filter(user => user.role === 'inspector')
                     .map(user => (
                       <option key={user.id} value={user.fullName}>
                         {user.fullName.toUpperCase()}

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import InvoiceGenerator from './InvoiceGenerator';
+import { printInvoice, exportInvoiceAsWord } from '../utils/invoicePrintUtils';
 
 const INVOICE_STATUSES = {
   pending: { label: 'Pending', color: '#ffc107', bgColor: '#fff3cd' },
@@ -16,7 +16,6 @@ const InvoiceDetails = ({ invoice, onBack, onUpdateStatus, onAddNote, onDelete, 
   const [dueDate, setDueDate] = useState(invoice.dueDate || '');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [partialPaymentAmount, setPartialPaymentAmount] = useState('');
-  const [showInvoiceGenerator, setShowInvoiceGenerator] = useState(false);
   const [actionFeedback, setActionFeedback] = useState('');
   
   // Removed unused edit states
@@ -124,6 +123,15 @@ const InvoiceDetails = ({ invoice, onBack, onUpdateStatus, onAddNote, onDelete, 
     onBack();
   }, [invoice.id, invoice.invoiceNumber, onDelete, onBack, onAddNote, currentUser]);
 
+  const handlePrintInvoice = useCallback(async () => {
+    // Use unified print function with invoice data
+    await printInvoice(invoice);
+  }, [invoice]);
+
+  const handleDownloadWord = useCallback(async () => {
+    await exportInvoiceAsWord(invoice);
+  }, [invoice]);
+
   // Create simple, readable history entries
   const createHistoryEntry = useCallback((changes) => {
     const date = new Date().toLocaleDateString('en-GB'); // DD/MM/YYYY format
@@ -204,21 +212,27 @@ const InvoiceDetails = ({ invoice, onBack, onUpdateStatus, onAddNote, onDelete, 
   const isOverdue = invoice.dueDate && new Date(invoice.dueDate) < new Date() && invoice.status === 'pending';
 
   return (
-    <div className="invoice-details">
+    <div className="invoice-details page-transition-enter-active" style={{marginTop: '2rem', paddingTop: '1rem'}}>
       <div className="management-header">
         <div className="management-title-section">
           <div className="details-title-group">
-            <button onClick={onBack} className="back-btn">
-              ← Back to Invoices
-            </button>
             <h2>Invoice Details - {invoice.invoiceNumber}</h2>
           </div>
-          <button
-            onClick={() => setShowInvoiceGenerator(true)}
-            className="export-excel-btn"
-          >
-            📄 Generate Invoice
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={handlePrintInvoice}
+              className="export-excel-btn"
+            >
+              🖨️ Print Invoice
+            </button>
+            <button
+              onClick={handleDownloadWord}
+              className="export-excel-btn"
+              style={{ backgroundColor: '#17a2b8' }}
+            >
+              📄 Download Word
+            </button>
+          </div>
         </div>
         
         <div className="client-bank-row">
@@ -564,49 +578,9 @@ const InvoiceDetails = ({ invoice, onBack, onUpdateStatus, onAddNote, onDelete, 
             </button>
           </div>
 
-          <div className="invoices-table-container" style={{marginTop: '2rem'}}>
-            <div className="section-header">
-              <h3 style={{color: '#dc3545'}}>Danger Zone</h3>
-            </div>
-            {!showDeleteConfirm ? (
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="action-btn-modern"
-                style={{backgroundColor: '#dc3545', color: 'white'}}
-              >
-                Delete Invoice
-              </button>
-            ) : (
-              <div className="delete-confirm-modern">
-                <p style={{margin: '0 0 1rem 0', color: '#666'}}>Confirm deletion? This cannot be undone.</p>
-                <div style={{display: 'flex', gap: '0.5rem'}}>
-                  <button 
-                    onClick={handleDelete} 
-                    className="action-btn-modern"
-                    style={{backgroundColor: '#dc3545', color: 'white', flex: 1}}
-                  >
-                    Confirm Delete
-                  </button>
-                  <button 
-                    onClick={() => setShowDeleteConfirm(false)} 
-                    className="filter-btn"
-                    style={{flex: 1}}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
-      {showInvoiceGenerator && (
-        <InvoiceGenerator
-          invoice={invoice}
-          onClose={() => setShowInvoiceGenerator(false)}
-        />
-      )}
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import '../styles/invoice-form.css';
+import { printInvoice } from '../utils/invoicePrintUtils';
 
 const InvoiceForm = ({ addInvoice, invoices, files = [], selectedFileForInvoice, currentUser, onBackToFiles, onInvoiceSubmitted }) => {
   const [users, setUsers] = useState([]);
@@ -14,6 +15,7 @@ const InvoiceForm = ({ addInvoice, invoices, files = [], selectedFileForInvoice,
     clientLastName: '',
     clientAddress: '',
     bankName: '',
+    branchName: '',
     professionalFees: '',
     advance: '',
     total: 0,
@@ -31,6 +33,27 @@ const InvoiceForm = ({ addInvoice, invoices, files = [], selectedFileForInvoice,
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Calculation functions
+  const calculateTotal = useCallback(() => {
+    const fees = parseFloat(invoice.professionalFees) || 0;
+    const advance = parseFloat(invoice.advance) || 0;
+    return Math.max(0, fees - advance);
+  }, [invoice.professionalFees, invoice.advance]);
+
+  const calculateTotalWithGST = useCallback(() => {
+    const baseAmount = calculateTotal();
+    if (!invoice.gstApplicable) return baseAmount;
+    
+    let gstRate = 0;
+    if (invoice.gstType === 'CGST_SGST') {
+      gstRate = (parseFloat(invoice.cgstRate) || 0) + (parseFloat(invoice.sgstRate) || 0);
+    } else {
+      gstRate = parseFloat(invoice.igstRate) || 0;
+    }
+    
+    return baseAmount + (baseAmount * gstRate / 100);
+  }, [calculateTotal, invoice.gstApplicable, invoice.gstType, invoice.cgstRate, invoice.sgstRate, invoice.igstRate]);
 
   const addAdditionalFile = useCallback(() => {
     setAdditionalFiles(prev => [...prev, '']);
@@ -90,7 +113,8 @@ const InvoiceForm = ({ addInvoice, invoices, files = [], selectedFileForInvoice,
           clientMiddleName: selectedFile.clientMiddleName || '',
           clientLastName: selectedFile.clientLastName || '',
           clientAddress: selectedFile.clientAddress || '',
-          bankName: selectedFile.bankName || ''
+          bankName: selectedFile.bankName || '',
+          branchName: selectedFile.branchName || ''
         }));
       }
     }
@@ -246,38 +270,41 @@ const InvoiceForm = ({ addInvoice, invoices, files = [], selectedFileForInvoice,
       await new Promise(resolve => setTimeout(resolve, 100));
       const invoiceToAdd = {
         ...invoice,
-        status: isDraft ? 'draft' : 'pending'
+        status: isDraft ? 'draft' : 'pending',
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        currentFile: files.find(f => f.id === currentFile),
+        additionalFiles: additionalFiles.map(id => files.find(f => f.id === id)).filter(Boolean),
+        calculatedTotal: invoice.gstApplicable ? calculateTotalWithGST() : calculateTotal(),
+        clientFullName: [invoice.clientFirstName, invoice.clientMiddleName, invoice.clientLastName].filter(Boolean).join(' ')
       };
       addInvoice(invoiceToAdd);
       
       // If not a draft and there's a selected file, mark it as completed
+      console.log('Invoice submission debug:', { 
+        isDraft, 
+        currentFile, 
+        onInvoiceSubmitted: !!onInvoiceSubmitted,
+        calculatedTotal: invoiceToAdd.calculatedTotal 
+      });
+      
       if (!isDraft && currentFile && onInvoiceSubmitted) {
-        onInvoiceSubmitted(currentFile);
+        console.log('Calling onInvoiceSubmitted with:', currentFile, invoiceToAdd.calculatedTotal);
+        onInvoiceSubmitted(currentFile, invoiceToAdd.calculatedTotal);
+      } else {
+        console.log('onInvoiceSubmitted NOT called because:', {
+          isDraft,
+          hasCurrentFile: !!currentFile,
+          hasCallback: !!onInvoiceSubmitted
+        });
       }
       
-      setInvoice({
-        invoiceNumber: '',
-        invoiceDate: new Date().toISOString().split('T')[0],
-        clientFirstName: '',
-        clientMiddleName: '',
-        clientLastName: '',
-        clientAddress: '',
-        bankName: '',
-        professionalFees: '',
-        advance: '',
-        total: 0,
-        status: 'pending',
-        dueDate: '',
-        paymentDate: null,
-        notes: '',
-        clientGstNumber: '',
-        gstApplicable: false,
-        gstType: 'CGST_SGST',
-        cgstRate: 9,
-        sgstRate: 9,
-        igstRate: 18,
-      });
-      setErrors({});
+      // Show success message
+      alert(`Invoice ${isDraft ? 'draft saved' : 'submitted'} successfully! Invoice Number: ${invoiceToAdd.invoiceNumber}`);
+      
+      // Don't reset the form - keep it for reference
+      // User can navigate back manually if needed
     } catch (error) {
       console.error('Failed to add invoice:', error);
     } finally {
@@ -288,6 +315,302 @@ const InvoiceForm = ({ addInvoice, invoices, files = [], selectedFileForInvoice,
   const handleSaveAsDraft = useCallback((e) => {
     handleSubmit(e, true);
   }, [handleSubmit]);
+
+
+  const handlePrintInvoice = useCallback(async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    // Auto-submit the invoice first
+    try {
+      const submissionResult = await addInvoice({
+        ...invoice,
+        status: 'completed',
+        currentFile: files.find(f => f.id === currentFile),
+        additionalFiles: additionalFiles.map(id => files.find(f => f.id === id)).filter(Boolean),
+        calculatedTotal: invoice.gstApplicable ? calculateTotalWithGST() : calculateTotal()
+      });
+
+      // Update the file status to completed with the bill amount
+      if (currentFile && onInvoiceSubmitted) {
+        onInvoiceSubmitted(currentFile, {
+          status: 'completed',
+          billAmount: invoice.gstApplicable ? calculateTotalWithGST() : calculateTotal(),
+          invoiceId: submissionResult?.id,
+          submittedAt: new Date().toISOString()
+        });
+      }
+
+      // Show success feedback
+      alert('✓ Invoice submitted and ready to print!');
+
+    } catch (error) {
+      console.error('Failed to submit invoice:', error);
+      alert('Failed to submit invoice. Please try again.');
+      return;
+    }
+
+    // Create invoice data for printing
+    const invoiceData = {
+      ...invoice,
+      currentFile: files.find(f => f.id === currentFile),
+      additionalFiles: additionalFiles.map(id => files.find(f => f.id === id)).filter(Boolean),
+      calculatedTotal: invoice.gstApplicable ? calculateTotalWithGST() : calculateTotal()
+    };
+
+    // Use unified print function
+    await printInvoice(invoiceData);
+  }, [invoice, validateForm, files, currentFile, additionalFiles, calculateTotal, calculateTotalWithGST, addInvoice, onInvoiceSubmitted]);
+
+  const generateInvoicePrintContent = (invoiceData) => {
+    const clientName = [
+      invoiceData.clientFirstName,
+      invoiceData.clientMiddleName,
+      invoiceData.clientLastName
+    ].filter(Boolean).join(' ');
+
+    const today = new Date().toLocaleDateString('en-IN');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invoice ${invoiceData.invoiceNumber}</title>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            line-height: 1.6;
+            color: #333;
+          }
+          .company-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+          }
+          .company-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+          }
+          .company-logo {
+            height: 80px;
+            width: 80px;
+            object-fit: contain;
+            border: 1px solid #ddd;
+          }
+          .company-name-img {
+            height: 60px;
+            width: auto;
+            object-fit: contain;
+            max-width: 400px;
+            border: 1px solid #ddd;
+          }
+          .logo-fallback {
+            width: 80px;
+            height: 80px;
+            border: 2px solid #2c3e50;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            color: #2c3e50;
+          }
+          .cname-fallback {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+            line-height: 1.2;
+          }
+          .cname-fallback small {
+            font-size: 12px;
+            font-weight: normal;
+            color: #666;
+          }
+          .invoice-header { 
+            text-align: center; 
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+          }
+          .invoice-meta {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 10px;
+          }
+          .invoice-title { 
+            font-size: 28px; 
+            font-weight: bold; 
+            margin-bottom: 10px;
+            color: #2c3e50;
+          }
+          .invoice-details { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 30px; 
+            margin-bottom: 30px;
+          }
+          .detail-section h3 { 
+            margin-bottom: 10px; 
+            font-size: 16px;
+            color: #34495e;
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 5px;
+          }
+          .detail-section p { 
+            margin: 5px 0; 
+            font-size: 14px;
+          }
+          .files-section { 
+            margin: 30px 0;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+          }
+          .files-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+          }
+          .financial-section { 
+            margin-top: 30px;
+            border-top: 2px solid #333;
+            padding-top: 20px;
+          }
+          .amount-row { 
+            display: flex; 
+            justify-content: space-between; 
+            margin: 10px 0;
+            padding: 5px 0;
+          }
+          .total-row { 
+            font-weight: bold; 
+            font-size: 18px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+            margin-top: 15px;
+          }
+          .gst-details {
+            background: #e8f5e8;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+          }
+          .notes-section {
+            margin-top: 30px;
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+          }
+          @media print { 
+            body { margin: 0; } 
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="company-header">
+          <div class="company-info">
+            ${invoiceData.logoBase64 ? `<img src="${invoiceData.logoBase64}" alt="Company Logo" class="company-logo" onerror="this.style.display='none'" />` : '<div class="logo-fallback">LOGO</div>'}
+            ${invoiceData.cnameBase64 ? `<img src="${invoiceData.cnameBase64}" alt="S. Sen & Associates" class="company-name-img" onerror="this.style.display='none'" />` : '<div class="cname-fallback">S. SEN & ASSOCIATES<br><small>THREE DECADES OF DEDICATION</small></div>'}
+          </div>
+        </div>
+        
+        <div class="invoice-header">
+          <div class="invoice-title">INVOICE</div>
+          <div class="invoice-meta">
+            <p><strong>Invoice No:</strong> ${invoiceData.invoiceNumber}</p>
+            <p><strong>Date:</strong> ${new Date(invoiceData.invoiceDate).toLocaleDateString('en-IN')}</p>
+          </div>
+        </div>
+
+        <div class="invoice-details">
+          <div class="detail-section">
+            <h3>Bill To:</h3>
+            <p><strong>${clientName}</strong></p>
+            <p>${invoiceData.clientAddress}</p>
+            ${invoiceData.clientGstNumber ? `<p><strong>GST No:</strong> ${invoiceData.clientGstNumber}</p>` : ''}
+          </div>
+          <div class="detail-section">
+            <h3>Invoice Details:</h3>
+            <p><strong>Due Date:</strong> ${invoiceData.dueDate ? new Date(invoiceData.dueDate).toLocaleDateString('en-IN') : 'N/A'}</p>
+            <p><strong>Status:</strong> ${invoiceData.status.toUpperCase()}</p>
+            ${invoiceData.bankName ? `<p><strong>Bank:</strong> ${invoiceData.bankName}</p>` : ''}
+          </div>
+        </div>
+
+        <div class="files-section">
+          <h3>Services/Files:</h3>
+          ${invoiceData.currentFile ? `<p><strong>Primary File:</strong> ${invoiceData.currentFile.clientName} - ${invoiceData.currentFile.fileType}</p>` : ''}
+          ${invoiceData.additionalFiles.length > 0 ? `
+            <p><strong>Additional Files:</strong></p>
+            <ul>
+              ${invoiceData.additionalFiles.map(file => `<li>${file.clientName} - ${file.fileType}</li>`).join('')}
+            </ul>
+          ` : ''}
+        </div>
+
+        <div class="financial-section">
+          <div class="amount-row">
+            <span>Professional Fees:</span>
+            <span>₹${parseFloat(invoiceData.professionalFees || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+          </div>
+          
+          ${invoiceData.advance ? `
+            <div class="amount-row">
+              <span>Less: Advance:</span>
+              <span>₹${parseFloat(invoiceData.advance || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+            </div>
+          ` : ''}
+
+          ${invoiceData.gstApplicable ? `
+            <div class="gst-details">
+              <h4>GST Details:</h4>
+              ${invoiceData.gstType === 'CGST_SGST' ? `
+                <div class="amount-row">
+                  <span>CGST (${invoiceData.cgstRate}%):</span>
+                  <span>₹${(((invoiceData.professionalFees || 0) - (invoiceData.advance || 0)) * (invoiceData.cgstRate / 100)).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                </div>
+                <div class="amount-row">
+                  <span>SGST (${invoiceData.sgstRate}%):</span>
+                  <span>₹${(((invoiceData.professionalFees || 0) - (invoiceData.advance || 0)) * (invoiceData.sgstRate / 100)).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                </div>
+              ` : `
+                <div class="amount-row">
+                  <span>IGST (${invoiceData.igstRate}%):</span>
+                  <span>₹${(((invoiceData.professionalFees || 0) - (invoiceData.advance || 0)) * (invoiceData.igstRate / 100)).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                </div>
+              `}
+            </div>
+          ` : ''}
+
+          <div class="amount-row total-row">
+            <span>Total Amount:</span>
+            <span>₹${invoiceData.calculatedTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+          </div>
+        </div>
+
+        ${invoiceData.notes ? `
+          <div class="notes-section">
+            <h3>Notes:</h3>
+            <p>${invoiceData.notes}</p>
+          </div>
+        ` : ''}
+
+        <div style="margin-top: 50px; text-align: center; font-size: 12px; color: #666;">
+          <p>Generated on ${today}</p>
+        </div>
+      </body>
+      </html>
+    `;
+  };
 
   return (
     <form onSubmit={handleSubmit} className="invoice-form page-transition-enter-active">
@@ -324,100 +647,8 @@ const InvoiceForm = ({ addInvoice, invoices, files = [], selectedFileForInvoice,
       <div className="client-information-section">
         <h3 className="section-title">Client Information</h3>
         
-        <div className="gst-control-section">
-          <div className="form-group">
-            <label className="toggle-label">
-              <input
-                type="checkbox"
-                name="gstApplicable"
-                checked={invoice.gstApplicable}
-                onChange={handleChange}
-                className="toggle-checkbox"
-              />
-              <span className="toggle-slider"></span>
-              GST Invoice
-            </label>
-            <small>Toggle to enable GST calculations and simplified invoice numbering</small>
-          </div>
 
-          {invoice.gstApplicable && (
-            <div className="gst-config-panel">
-              <div className="form-group">
-                <label htmlFor="clientGstNumber">Client GST Number (Optional)</label>
-                <input
-                  id="clientGstNumber"
-                  type="text"
-                  name="clientGstNumber"
-                  placeholder="Enter GST number (e.g., 27AACFS7539M1ZV)"
-                  value={invoice.clientGstNumber}
-                  onChange={handleChange}
-                  maxLength="15"
-                />
-                <small>Optional - Will be shown on invoice if provided</small>
-              </div>
 
-              <div className="form-group">
-                <label htmlFor="gstType">GST Type</label>
-                <select
-                  id="gstType"
-                  name="gstType"
-                  value={invoice.gstType}
-                  onChange={handleChange}
-                  className="gst-type-select"
-                >
-                  <option value="CGST_SGST">CGST + SGST (Intrastate)</option>
-                  <option value="IGST">IGST (Interstate)</option>
-                </select>
-                <small>Choose based on client's state location</small>
-              </div>
-
-              {invoice.gstType === 'CGST_SGST' ? (
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="cgstRate">CGST Rate (%)</label>
-                    <input
-                      id="cgstRate"
-                      type="number"
-                      name="cgstRate"
-                      value={invoice.cgstRate}
-                      onChange={handleChange}
-                      min="0"
-                      max="20"
-                      step="0.5"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="sgstRate">SGST Rate (%)</label>
-                    <input
-                      id="sgstRate"
-                      type="number"
-                      name="sgstRate"
-                      value={invoice.sgstRate}
-                      onChange={handleChange}
-                      min="0"
-                      max="20"
-                      step="0.5"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="form-group">
-                  <label htmlFor="igstRate">IGST Rate (%)</label>
-                  <input
-                    id="igstRate"
-                    type="number"
-                    name="igstRate"
-                    value={invoice.igstRate}
-                    onChange={handleChange}
-                    min="0"
-                    max="40"
-                    step="0.5"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
 
         <div className="client-name-section">
           <label className="section-label">Client Name *</label>
@@ -624,6 +855,102 @@ const InvoiceForm = ({ addInvoice, invoices, files = [], selectedFileForInvoice,
           </div>
         </div>
         
+        {/* GST Configuration Section */}
+        <div className="gst-control-section">
+          <div className="form-group">
+            <label className="toggle-label">
+              <input
+                type="checkbox"
+                name="gstApplicable"
+                checked={invoice.gstApplicable}
+                onChange={handleChange}
+                className="toggle-checkbox"
+              />
+              <span className="toggle-slider"></span>
+              GST Invoice
+            </label>
+            <small>Toggle to enable GST calculations and simplified invoice numbering</small>
+          </div>
+
+          {invoice.gstApplicable && (
+            <div className="gst-config-panel">
+              <div className="form-group">
+                <label htmlFor="clientGstNumber">Client GST Number (Optional)</label>
+                <input
+                  id="clientGstNumber"
+                  type="text"
+                  name="clientGstNumber"
+                  placeholder="Enter GST number (e.g., 27AACFS7539M1ZV)"
+                  value={invoice.clientGstNumber}
+                  onChange={handleChange}
+                  maxLength="15"
+                />
+                <small>Optional - Will be shown on invoice if provided</small>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="gstType">GST Type</label>
+                <select
+                  id="gstType"
+                  name="gstType"
+                  value={invoice.gstType}
+                  onChange={handleChange}
+                  className="gst-type-select"
+                >
+                  <option value="CGST_SGST">CGST + SGST (Intrastate)</option>
+                  <option value="IGST">IGST (Interstate)</option>
+                </select>
+                <small>Choose based on client's state location</small>
+              </div>
+
+              {invoice.gstType === 'CGST_SGST' ? (
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="cgstRate">CGST Rate (%)</label>
+                    <input
+                      id="cgstRate"
+                      type="number"
+                      name="cgstRate"
+                      value={invoice.cgstRate}
+                      onChange={handleChange}
+                      min="0"
+                      max="20"
+                      step="0.5"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="sgstRate">SGST Rate (%)</label>
+                    <input
+                      id="sgstRate"
+                      type="number"
+                      name="sgstRate"
+                      value={invoice.sgstRate}
+                      onChange={handleChange}
+                      min="0"
+                      max="20"
+                      step="0.5"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label htmlFor="igstRate">IGST Rate (%)</label>
+                  <input
+                    id="igstRate"
+                    type="number"
+                    name="igstRate"
+                    value={invoice.igstRate}
+                    onChange={handleChange}
+                    min="0"
+                    max="40"
+                    step="0.5"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="total">Amount Before GST (₹)</label>
@@ -712,14 +1039,22 @@ const InvoiceForm = ({ addInvoice, invoices, files = [], selectedFileForInvoice,
           disabled={isSubmitting || Object.keys(errors).length > 0}
           className="btn-primary"
         >
-          {isSubmitting ? 'Adding Invoice...' : 'Add Invoice'}
+          {isSubmitting ? 'Submitting...' : 'Submit'}
+        </button>
+        <button 
+          type="button"
+          onClick={handlePrintInvoice}
+          disabled={isSubmitting || Object.keys(errors).length > 0}
+          className="btn-print"
+        >
+          🖨️ Print Invoice
         </button>
         <button 
           type="button"
           onClick={onBackToFiles}
           className="back-to-files-btn"
         >
-          ← Back to Files
+          ← Back
         </button>
       </div>
     </form>
