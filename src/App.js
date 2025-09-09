@@ -13,6 +13,7 @@ import AdvancedSearch from './components/AdvancedSearch';
 import logoImg from './assets/logo.png';
 import { ROLES, hasAdminAccess, hasComputerOperatorAccess } from './constants/roles';
 import { getParsedLocalStorage, setLocalStorage, getStorageVersion } from './utils/localStorage';
+import apiService from './services/api';
 import './App.css';
 
 function App() {
@@ -34,6 +35,36 @@ function App() {
   const [banksVersion, setBanksVersion] = useState(0);
   const [filesVersion, setFilesVersion] = useState(0);
 
+  // Load data from API
+  const loadDataFromAPI = useCallback(async () => {
+    try {
+      // Load files and invoices from backend
+      const [filesData, invoicesData] = await Promise.all([
+        apiService.getFiles(),
+        apiService.getInvoices()
+      ]);
+      
+      setFiles(filesData);
+      setInvoices(invoicesData);
+      
+      // Keep banks from localStorage for now (until we add banks API)
+      const loadedBanks = getParsedLocalStorage('banks', []);
+      setBanks(loadedBanks);
+      
+      console.log('Data loaded from API:', { files: filesData.length, invoices: invoicesData.length });
+    } catch (error) {
+      console.error('Failed to load data from API:', error);
+      // Fallback to localStorage if API fails
+      const loadedInvoices = getParsedLocalStorage('invoices', []);
+      const loadedBanks = getParsedLocalStorage('banks', []);
+      const loadedFiles = getParsedLocalStorage('files', []);
+      
+      setInvoices(loadedInvoices);
+      setBanks(loadedBanks);
+      setFiles(loadedFiles);
+    }
+  }, []);
+
   useEffect(() => {
     // Check for existing session
     const storedUser = localStorage.getItem('currentUser');
@@ -48,16 +79,10 @@ function App() {
       }
     }
 
-    // Load initial data using utility functions
-    const loadedInvoices = getParsedLocalStorage('invoices', []);
-    const loadedBanks = getParsedLocalStorage('banks', []);
-    const loadedFiles = getParsedLocalStorage('files', []);
+    // Load initial data from API
+    loadDataFromAPI();
     
-    setInvoices(loadedInvoices);
-    setBanks(loadedBanks);
-    setFiles(loadedFiles);
-    
-    // Initialize version tracking
+    // Initialize version tracking (keeping for compatibility)
     setInvoicesVersion(getStorageVersion('invoices'));
     setBanksVersion(getStorageVersion('banks'));
     setFilesVersion(getStorageVersion('files'));
@@ -159,19 +184,29 @@ function App() {
     localStorage.removeItem('currentUser');
   }, []);
 
-  const addInvoice = useCallback((invoice) => {
-    const userName = currentUser?.fullName || 'User';
-    const date = new Date().toLocaleDateString('en-GB');
-    const invoiceWithId = {
-      ...invoice,
-      id: Date.now() + Math.random(),
-      createdAt: new Date().toISOString(),
-      createdBy: currentUser?.id || 'unknown',
-      createdByName: currentUser?.fullName || 'Unknown User',
-      notes: `${date} - ${userName} created invoice ${invoice.invoiceNumber} for ₹${parseFloat(invoice.total || 0).toLocaleString('en-IN')}`
-    };
-    setInvoices(prev => [...prev, invoiceWithId]);
-  }, [currentUser]);
+  const addInvoice = useCallback(async (invoice) => {
+    try {
+      const result = await apiService.createInvoice(invoice);
+      // Reload invoices from API to get the complete updated list
+      loadDataFromAPI();
+      return result;
+    } catch (error) {
+      console.error('Failed to create invoice:', error);
+      // Fallback to local state update
+      const userName = currentUser?.fullName || 'User';
+      const date = new Date().toLocaleDateString('en-GB');
+      const invoiceWithId = {
+        ...invoice,
+        id: Date.now() + Math.random(),
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser?.id || 'unknown',
+        createdByName: currentUser?.fullName || 'Unknown User',
+        notes: `${date} - ${userName} created invoice ${invoice.invoiceNumber} for ₹${parseFloat(invoice.total || 0).toLocaleString('en-IN')}`
+      };
+      setInvoices(prev => [...prev, invoiceWithId]);
+      throw error;
+    }
+  }, [currentUser, loadDataFromAPI]);
 
   const deleteInvoice = useCallback((invoiceId) => {
     setInvoices(prev => prev.filter(invoice => invoice.id !== invoiceId));
@@ -197,19 +232,29 @@ function App() {
     setBanks(prev => prev.filter(bank => bank.id !== bankId));
   }, []);
 
-  const addFile = useCallback((file) => {
-    const userName = currentUser?.fullName || 'User';
-    const date = new Date().toLocaleDateString('en-GB');
-    const fileWithId = {
-      ...file,
-      id: file.id || (Date.now() + Math.random()), // Preserve existing ID or generate new one
-      createdAt: file.createdAt || new Date().toISOString(),
-      createdBy: currentUser?.id || 'unknown',
-      createdByName: currentUser?.fullName || 'Unknown User',
-      notes: file.notes ? `${file.notes}\n\n${date} - ${userName} created file ${file.fileNumber} for ₹${parseFloat(file.amount || 0).toLocaleString('en-IN')}` : `${date} - ${userName} created file ${file.fileNumber} for ₹${parseFloat(file.amount || 0).toLocaleString('en-IN')}`
-    };
-    setFiles(prev => [...prev, fileWithId]);
-  }, [currentUser]);
+  const addFile = useCallback(async (file) => {
+    try {
+      const result = await apiService.createFile(file);
+      // Reload files from API to get the complete updated list
+      loadDataFromAPI();
+      return result;
+    } catch (error) {
+      console.error('Failed to create file:', error);
+      // Fallback to local state update
+      const userName = currentUser?.fullName || 'User';
+      const date = new Date().toLocaleDateString('en-GB');
+      const fileWithId = {
+        ...file,
+        id: file.id || (Date.now() + Math.random()),
+        createdAt: file.createdAt || new Date().toISOString(),
+        createdBy: currentUser?.id || 'unknown',
+        createdByName: currentUser?.fullName || 'Unknown User',
+        notes: file.notes ? `${file.notes}\n\n${date} - ${userName} created file ${file.fileNumber} for ₹${parseFloat(file.amount || 0).toLocaleString('en-IN')}` : `${date} - ${userName} created file ${file.fileNumber} for ₹${parseFloat(file.amount || 0).toLocaleString('en-IN')}`
+      };
+      setFiles(prev => [...prev, fileWithId]);
+      throw error;
+    }
+  }, [currentUser, loadDataFromAPI]);
 
   const updateFile = useCallback((fileId, updatedFile) => {
     console.log('updateFile called with:', { fileId, updatedFile });
